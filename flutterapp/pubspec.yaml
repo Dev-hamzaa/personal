@@ -9,6 +9,9 @@ environment:
 
 dependencies:
   get: any
+
+  velocity_x: any
+
   flutter:
     sdk: flutter
 
