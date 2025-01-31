@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutterapp/components/custom-button.dart';
 import 'package:flutterapp/components/custom-textfield.dart';
 import 'package:flutterapp/consts/images.dart';
 import 'package:flutterapp/consts/strings.dart';
@@ -37,11 +38,13 @@ class LoginView extends StatelessWidget {
                           alignment: Alignment.centerRight,
                           child: AppStrings.forgotPassword.text.make()),
                       20.heightBox,
-                      SizedBox(
-                        width: context.screenWidth - 60,
-                        child: ElevatedButton(
-                            onPressed: () {},
-                            child: AppStrings.login.text.make()),
+                      CustomButton(
+                        buttonText: AppStrings.login,
+                        onTap: () {},
+                      ),
+                      20.heightBox,
+                      Row(
+                        children: [],
                       )
                     ],
                   )),
