@@ -35,11 +35,29 @@ class LoginView extends StatelessWidget {
                         fit: BoxFit.contain,
                       ),
                       const SizedBox(height: 10),
-                      Text(
-                        AppStrings.welcome,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 24,
+                      Center(
+                        child: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'Health',
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 32,
+                                ),
+                              ),
+                              TextSpan(
+                                text: ' Sphere',
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 32,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -71,7 +89,7 @@ class LoginView extends StatelessWidget {
                         CustomButton(
                           buttonText: AppStrings.login,
                           onTap: () async {
-                            String role = 'patient'; // This will come from your API
+                            String role = 'doctor'; // This will come from your API
                             
                             // Use only one method to store the role, remove the duplicate
                             await SharedPreferences.getInstance().then((prefs) {

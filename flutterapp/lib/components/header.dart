@@ -32,7 +32,7 @@ class Header extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            "Your Health, Our Priority",
+            "Connecting Lives, Through Care",
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey,
