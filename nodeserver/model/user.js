@@ -1,8 +1,7 @@
 import mongoose from "mongoose";
 const userSchema = new mongoose.Schema(
   {
-    firstName: { type: String },
-    lastName: { type: String },
+    name: { type: String },
     fcmApp: { type: String },
     gender: { type: String, enum: ["male", "female"] },
     emergencyNumber: { type: String },
@@ -37,6 +36,13 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "archive", "Alumni"],
       default: "active",
     },
+    availablibility:[
+      {
+        day:String,
+        startDate:mongoose.Schema.Types.Date,
+        endDate:mongoose.Schema.Types.Date,
+      }
+    ]
   },
   {
     timestamps: true,

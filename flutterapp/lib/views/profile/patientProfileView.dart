@@ -23,10 +23,9 @@ class _ProfileViewState extends State<ProfileView> {
     super.initState();
     // TODO: Load user data from API
     // For now, using dummy data
-    nameController.text = "Dr. John Doe";
-    emailController.text = "john.doe@example.com";
+    nameController.text = "John Smith";
+    emailController.text = "john.smith@example.com";
     phoneController.text = "+1234567890";
-    specializationController.text = "Cardiologist";
   }
 
   @override
@@ -112,13 +111,6 @@ class _ProfileViewState extends State<ProfileView> {
                         hint: "Phone Number",
                         prefixIcon: Icons.phone,
                         textController: phoneController,
-                      ).makeDisabled(!isEditing),
-                      10.heightBox,
-
-                      CustomTextField(
-                        hint: "Specialization",
-                        prefixIcon: Icons.work,
-                        textController: specializationController,
                       ).makeDisabled(!isEditing),
                       20.heightBox,
 
