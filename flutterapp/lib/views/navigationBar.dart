@@ -5,6 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutterapp/views/doctor/doctorview.dart';
 import 'package:flutterapp/views/patient/pateintView.dart';
 import 'package:flutterapp/views/patient/patientAppointment.dart';
+import 'package:flutterapp/views/donor/donorView.dart';
+import 'package:flutterapp/views/profile/donorProfileView.dart';
+
 
 class Navigationbar extends StatefulWidget {
   const Navigationbar({super.key});
@@ -33,10 +36,18 @@ class _NavigationbarState extends State<Navigationbar> {
 
   Widget _getPage(int index) {
     if (index == 0) {
-      return userRole == 'doctor' ? const DoctorView() : const PatientView();
+      return userRole == 'doctor' 
+          ? const DoctorView() 
+          : userRole == 'donor'
+              ? const DonorView()
+              : const PatientView();
     }
     if (index == 1) {
-      return userRole == 'doctor' ? const DoctorProfileView() : const ProfileView();
+      return userRole == 'doctor' 
+          ? const DoctorProfileView() 
+          : userRole == 'donor'
+              ? const DonorProfileView()
+              : const ProfileView();
     }
     return userRole == 'doctor' 
         ? const Center(child: Text('Settings'))
