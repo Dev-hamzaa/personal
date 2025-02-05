@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutterapp/components/custom-button.dart';
 import 'package:flutterapp/components/custom-textfield.dart';
@@ -21,6 +20,8 @@ class _SignupViewState extends State<SignupView> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   final TextEditingController specializationController = TextEditingController();
+  final TextEditingController bloodTypeController = TextEditingController();
+  final TextEditingController organDonationStatusController = TextEditingController();
 
 //   Future<void> signupCall() async {
 //     try {
@@ -43,6 +44,8 @@ class _SignupViewState extends State<SignupView> {
     passwordController.clear();
     confirmPasswordController.clear();
     specializationController.clear();
+    bloodTypeController.clear();
+    organDonationStatusController.clear();
   }
 
 
@@ -51,9 +54,8 @@ class _SignupViewState extends State<SignupView> {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Container(
+          child: Padding(
             padding: const EdgeInsets.all(16),
-            height: context.height - 40,
             child: Column(
               children: [
                 Align(
@@ -68,32 +70,58 @@ class _SignupViewState extends State<SignupView> {
                 "Create Account".text.bold.size(24).make(),
                 20.heightBox,
                 // Role Selection
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 5,
                   children: [
-                    Radio(
-                      value: 'patient',
-                      groupValue: selectedRole,
-                      onChanged: (value) {
-                        setState(() {
-                          selectedRole = value.toString();
-                          clearForm(); // Clear form when role changes
-                        });
-                      },
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Radio(
+                          value: 'patient',
+                          groupValue: selectedRole,
+                          onChanged: (value) {
+                            setState(() {
+                              selectedRole = value.toString();
+                              clearForm();
+                            });
+                          },
+                        ),
+                        'Patient'.text.make(),
+                      ],
                     ),
-                    'Patient'.text.make(),
-                    20.widthBox,
-                    Radio(
-                      value: 'doctor',
-                      groupValue: selectedRole,
-                      onChanged: (value) {
-                        setState(() {
-                          selectedRole = value.toString();
-                          clearForm(); // Clear form when role changes
-                        });
-                      },
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Radio(
+                          value: 'doctor',
+                          groupValue: selectedRole,
+                          onChanged: (value) {
+                            setState(() {
+                              selectedRole = value.toString();
+                              clearForm();
+                            });
+                          },
+                        ),
+                        'Doctor'.text.make(),
+                      ],
                     ),
-                    'Doctor'.text.make(),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Radio(
+                          value: 'donor',
+                          groupValue: selectedRole,
+                          onChanged: (value) {
+                            setState(() {
+                              selectedRole = value.toString();
+                              clearForm();
+                            });
+                          },
+                        ),
+                        'Donor'.text.make(),
+                      ],
+                    ),
                   ],
                 ),
                 20.heightBox,
@@ -133,6 +161,58 @@ class _SignupViewState extends State<SignupView> {
                           textController: specializationController,
                         ),
                       ],
+                      if (selectedRole == 'donor') ...[
+                        10.heightBox,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              prefixIcon: Icon(Icons.bloodtype),
+                            ),
+                            hint: const Text('Select Blood Type'),
+                            items: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+                                .map((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              bloodTypeController.text = value ?? '';
+                            },
+                          ),
+                        ),
+                        10.heightBox,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              prefixIcon: Icon(Icons.volunteer_activism),
+                            ),
+                            hint: const Text('Select Organ for Donation'),
+                            items: ['Kidney', 'Liver', 'Heart', 'Lungs', 'Pancreas', 'Small Bowel']
+                                .map((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              organDonationStatusController.text = value ?? '';
+                            },
+                          ),
+                        ),
+                      ],
                       20.heightBox,
                       CustomButton(
                         buttonText: "Sign Up",
@@ -164,7 +244,8 @@ class _SignupViewState extends State<SignupView> {
                             Navigator.pop(context);
                           })
                         ],
-                      )
+                      ),
+                      const SizedBox(height: 20), // Add bottom padding
                     ],
                   ),
                 ),
@@ -184,6 +265,8 @@ class _SignupViewState extends State<SignupView> {
     passwordController.dispose();
     confirmPasswordController.dispose();
     specializationController.dispose();
+    bloodTypeController.dispose();
+    organDonationStatusController.dispose();
     super.dispose();
   }
 }
