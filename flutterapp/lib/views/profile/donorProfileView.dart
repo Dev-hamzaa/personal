@@ -23,8 +23,8 @@ class _DonorProfileViewState extends State<DonorProfileView> {
     super.initState();
     // TODO: Load user data from API
     // For now, using dummy data
-    nameController.text = "John Smith";
-    emailController.text = "john.smith@example.com";
+    nameController.text = "Abuzar";
+    emailController.text = "abuzar@gmail.com";
     phoneController.text = "+1234567890";
     bloodTypeController.text = "O+";
     organTypeController.text = "Kidney";

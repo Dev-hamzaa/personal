@@ -14,38 +14,38 @@ class _DonorViewState extends State<DonorView> with SingleTickerProviderStateMix
   // Dummy data - Replace with actual API data
   final List<Map<String, String>> organRequests = [
     {
-      'name': 'Sarah Johnson',
+      'name': 'Ali',
       'age': '45',
       'organ': 'Kidney',
       'urgency': 'High',
-      'location': 'New York',
+      'location': 'Islamabad',
       'contact': '+1234567890',
     },
     {
-      'name': 'Mike Smith',
+      'name': 'Ahmed',
       'age': '52',
       'organ': 'Liver',
       'urgency': 'Medium',
-      'location': 'Boston',
+      'location': 'Islamabad',
       'contact': '+1234567891',
     },
   ];
 
   final List<Map<String, String>> bloodRequests = [
     {
-      'name': 'John Doe',
+      'name': 'Hamza',
       'age': '35',
       'bloodType': 'O+',
       'urgency': 'High',
-      'location': 'Chicago',
+      'location': 'Islamabad',
       'contact': '+1234567892',
     },
     {
-      'name': 'Emma Wilson',
+      'name': 'Abuzar',
       'age': '28',
       'bloodType': 'A-',
       'urgency': 'Medium',
-      'location': 'Miami',
+      'location': 'Islamabad',
       'contact': '+1234567893',
     },
   ];

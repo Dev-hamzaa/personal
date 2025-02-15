@@ -1,4 +1,49 @@
+import { Doctor } from "../../model/doctor.js";
 import { User } from "../../model/user.js";
+
+
+
+
+export const createDoctor=async(req,reply)=>{
+try {
+  const {name,email,password,specialization}=req.body;
+  const foundDoctor=await Doctor.findOne(
+    {
+      email:email
+    }
+  )
+  if(foundDoctor){
+    return reply.json(
+      
+      {
+        success:false,
+        message:"Your email is already registered"
+      }
+    )
+  }
+  const newDoctor=await Doctor.create(
+    {
+      name:name,
+      password:password,
+      email:email,
+      specialization:specialization
+    }
+  )
+  return reply.json(
+    {
+      success:true,
+      message:"Doctor Signup successfully"
+    }
+  )
+} catch (error) {
+  return reply.json({
+    message: "internal server Error",
+    data: error.message,
+  });
+}
+}
+
+
 
 export const doctorList = async (req, reply) => {
   try {
@@ -7,12 +52,12 @@ export const doctorList = async (req, reply) => {
     if (name) {
       query = {
         ...query,
-        firstName: {
+        name: {
           $regex: new RegExp(name, "i"),
         },
       };
     }
-    const list = await User.find(query);
+    const list = await Doctor.find(query);
     return reply.json({
       success: true,
       message: "Doctors List",
@@ -29,7 +74,7 @@ export const doctorList = async (req, reply) => {
 export const doctorDetail = async (req, reply) => {
   try {
     const { id } = req.params;
-    const docDetail = await User.findById({
+    const docDetail = await Doctor.findById({
       _id: id,
     });
 
@@ -55,7 +100,7 @@ export const doctorDetail = async (req, reply) => {
 export const deleteDoctor = async (req, reply) => {
   try {
     const { id } = req.params;
-    const delDoctor = await User.findByIdAndDelete({
+    const delDoctor = await Doctor.findByIdAndDelete({
       _id: id,
     });
     if (!delDoctor) {
@@ -80,16 +125,23 @@ export const deleteDoctor = async (req, reply) => {
 export const updateDoctor = async (req, reply) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, specialization, phoneNumber } = req.body;
+    const { name,email, specialization, phoneNumber,weeklySchedule } = req.body;
+
+    const foundDoctor=await Doctor.findById(
+      {
+        _id:id
+      }
+    )
     const updatedDoctor = await User.findByIdAndUpdate(
       {
         _id: id,
       },
       {
-        firstName,
-        lastName,
+        name,
+        email:email,
         specialization,
         phoneNumber,
+        weeklySchedule
       },
       {
         new: true,

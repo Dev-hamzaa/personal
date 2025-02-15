@@ -7,6 +7,31 @@ import 'package:flutterapp/components/header.dart';
 class PatientView extends StatelessWidget {
   const PatientView({super.key});
 
+  // Add doctor list
+  final List<Map<String, dynamic>> doctors = const [
+    {
+      'name': 'Dr. Ali Usman',
+      'specialization': 'Cardiologist',
+      'rating': '4.5',
+      'reviews': '120',
+      'availability': '9:00 AM - 5:00 PM',
+    },
+    {
+      'name': 'Dr. Bilal',
+      'specialization': 'Neurologist',
+      'rating': '4.8',
+      'reviews': '95',
+      'availability': '10:00 AM - 6:00 PM',
+    },
+    {
+      'name': 'Dr. Ali',
+      'specialization': 'Orthopedic',
+      'rating': '4.6',
+      'reviews': '150',
+      'availability': '8:00 AM - 4:00 PM',
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -68,18 +93,17 @@ class PatientView extends StatelessWidget {
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.all(16),
-                      itemCount: 10, // Replace with actual doctor count from API
+                      itemCount: doctors.length, // Changed to doctors.length
                       itemBuilder: (context, index) {
+                        final doctor = doctors[index]; // Get doctor data
                         return Card(
                           margin: const EdgeInsets.only(bottom: 16),
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               children: [
-                                // Doctor info row
                                 Row(
                                   children: [
-                                    // Doctor image
                                     CircleAvatar(
                                       radius: 30,
                                       backgroundColor: Colors.grey[300],
@@ -90,21 +114,37 @@ class PatientView extends StatelessWidget {
                                       ),
                                     ),
                                     20.widthBox,
-                                    // Doctor details
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          "Dr. John Doe ${index + 1}".text.bold.xl.make(),
-                                          "Cardiologist".text.gray500.make(),
+                                          Text(
+                                            doctor['name']!,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                          Text(
+                                            doctor['specialization']!,
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                            ),
+                                          ),
                                           Row(
                                             children: [
-                                              const Icon(Icons.star, 
+                                              const Icon(
+                                                Icons.star,
                                                 color: Colors.yellow,
                                                 size: 16,
                                               ),
-                                              " 4.5".text.make(),
-                                              " (120 reviews)".text.gray500.make(),
+                                              Text(" ${doctor['rating']}"),
+                                              Text(
+                                                " (${doctor['reviews']} reviews)",
+                                                style: const TextStyle(
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ],
@@ -113,20 +153,19 @@ class PatientView extends StatelessWidget {
                                   ],
                                 ),
                                 10.heightBox,
-                                // Available time slots
                                 Row(
                                   children: [
-                                    const Icon(Icons.access_time, 
+                                    const Icon(
+                                      Icons.access_time,
                                       color: Colors.blue,
                                       size: 16,
                                     ),
                                     10.widthBox,
                                     "Available Today: ".text.gray500.make(),
-                                    "9:00 AM - 5:00 PM".text.make(),
+                                    Text(doctor['availability']!),
                                   ],
                                 ),
                                 10.heightBox,
-                                // Book appointment button
                                 CustomButton(
                                   buttonText: "Book Appointment",
                                   onTap: () {
