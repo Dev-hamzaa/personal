@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  createDoctor,
   deleteDoctor,
   doctorDetail,
   doctorList,
@@ -8,6 +9,7 @@ import {
 
 const docRouter = express.Router();
 
+docRouter.route('/').post(createDoctor)
 docRouter.route("/").get(doctorList);
 docRouter
   .route("/:id")

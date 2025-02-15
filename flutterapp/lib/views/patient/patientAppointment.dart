@@ -73,7 +73,7 @@ class PatientAppointments extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Dr. John Doe',
+                                  'Dr. Talha',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,

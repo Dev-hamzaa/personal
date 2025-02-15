@@ -23,8 +23,8 @@ class _ProfileViewState extends State<ProfileView> {
     super.initState();
     // TODO: Load user data from API
     // For now, using dummy data
-    nameController.text = "John Smith";
-    emailController.text = "john.smith@example.com";
+    nameController.text = "Bilal";
+    emailController.text = "bilal@gmail.com";
     phoneController.text = "+1234567890";
   }
 

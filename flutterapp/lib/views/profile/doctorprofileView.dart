@@ -27,9 +27,10 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
   void initState() {
     super.initState();
     print("DoctorProfileView initialized");
-    // Dummy data
-    nameController.text = "Dr. John Doe";
-    emailController.text = "john.doe@example.com";
+    // TODO: Load user data from API
+    // For now, using dummy data
+    nameController.text = "Abuzar";
+    emailController.text = "abuzar@gmail.com";
     phoneController.text = "+1234567890";
     specializationController.text = "Cardiologist";
     

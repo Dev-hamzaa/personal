@@ -89,7 +89,7 @@ class LoginView extends StatelessWidget {
                         CustomButton(
                           buttonText: AppStrings.login,
                           onTap: () async {
-                            String role = 'donor'; // This will come from your API
+                            String role = 'patient'; // This will come from your API
                             
                             // Use only one method to store the role, remove the duplicate
                             await SharedPreferences.getInstance().then((prefs) {
