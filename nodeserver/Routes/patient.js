@@ -1,12 +1,6 @@
-import express from "express";
+const express=require("express")
 
-import {
-  deletePatient,
-  getpatientDetail,
-  patientList,
-  updatePatient,
-} from "../controller/patient/patient.js";
-
+const {patientList,updatePatient,deletePatient,getpatientDetail}=require("../controller/patient/patient")
 const patientRouter = express.Router();
 
 patientRouter.route("/").get(patientList);
@@ -16,4 +10,4 @@ patientRouter
   .put(updatePatient)
   .delete(deletePatient);
 
-export default patientRouter;
+module.exports=patientRouter;

@@ -1,13 +1,10 @@
-import { Doctor } from "../../model/doctor.js";
-import { User } from "../../model/user.js";
+const User=require("../../model/user")
 
 
-
-
-export const createDoctor=async(req,reply)=>{
+const createDoctor=async(req,reply)=>{
 try {
   const {name,email,password,specialization}=req.body;
-  const foundDoctor=await Doctor.findOne(
+  const foundDoctor=await User.findOne(
     {
       email:email
     }
@@ -21,7 +18,7 @@ try {
       }
     )
   }
-  const newDoctor=await Doctor.create(
+  const newDoctor=await User.create(
     {
       name:name,
       password:password,
@@ -45,7 +42,7 @@ try {
 
 
 
-export const doctorList = async (req, reply) => {
+ const doctorList = async (req, reply) => {
   try {
     const { name } = req.query;
     let query = { userRole: "doctor" };
@@ -57,7 +54,7 @@ export const doctorList = async (req, reply) => {
         },
       };
     }
-    const list = await Doctor.find(query);
+    const list = await User.find(query);
     return reply.json({
       success: true,
       message: "Doctors List",
@@ -71,10 +68,10 @@ export const doctorList = async (req, reply) => {
   }
 };
 
-export const doctorDetail = async (req, reply) => {
+ const doctorDetail = async (req, reply) => {
   try {
     const { id } = req.params;
-    const docDetail = await Doctor.findById({
+    const docDetail = await User.findById({
       _id: id,
     });
 
@@ -97,10 +94,10 @@ export const doctorDetail = async (req, reply) => {
   }
 };
 
-export const deleteDoctor = async (req, reply) => {
+ const deleteDoctor = async (req, reply) => {
   try {
     const { id } = req.params;
-    const delDoctor = await Doctor.findByIdAndDelete({
+    const delDoctor = await User.findByIdAndDelete({
       _id: id,
     });
     if (!delDoctor) {
@@ -122,12 +119,12 @@ export const deleteDoctor = async (req, reply) => {
   }
 };
 
-export const updateDoctor = async (req, reply) => {
+ const updateDoctor = async (req, reply) => {
   try {
     const { id } = req.params;
     const { name,email, specialization, phoneNumber,weeklySchedule } = req.body;
 
-    const foundDoctor=await Doctor.findById(
+    const foundDoctor=await User.findById(
       {
         _id:id
       }
@@ -159,3 +156,4 @@ export const updateDoctor = async (req, reply) => {
     });
   }
 };
+module.exports={updateDoctor,deleteDoctor,doctorDetail,doctorList}
