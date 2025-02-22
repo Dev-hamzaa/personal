@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose =require("mongoose");
 const userSchema = new mongoose.Schema(
   {
     name: { type: String },
@@ -8,11 +8,12 @@ const userSchema = new mongoose.Schema(
     profilePic: { type: String },
     bloodType: { type: String },
     specialization: { type: String },
+    selectedOrgan:{type:String},
     phoneNumber: { type: String },
     userRole: {
       type: String,
       enum: ["admin", "patient", "donor", "doctor"],
-      default: "student",
+      default: "admin",
     },
     email: {
       type: String,
@@ -31,11 +32,6 @@ const userSchema = new mongoose.Schema(
     },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     modifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    dataStatus: {
-      type: String,
-      enum: ["active", "archive", "Alumni"],
-      default: "active",
-    },
     availablibility:[
       {
         day:String,
@@ -49,4 +45,5 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-export const User = mongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
+module.exports=User

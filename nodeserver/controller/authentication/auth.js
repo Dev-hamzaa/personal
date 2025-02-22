@@ -1,19 +1,19 @@
-import { User } from "../../model/user";
-
-export const register = async (req, reply) => {
+const User = require("../../model/user");
+const jsonWebToken=require('jsonwebtoken')
+const register = async (req, reply) => {
   try {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    console.log(req.body)
     const {
-      firstName,
-      lastName,
-      email,
+    name  ,
+    email,
       password,
       userRole,
       phoneNumber,
       bloodType,
       specialization,
     } = req.body;
-    if (!firstName || !lastName || !password || (!email && !phoneNumber)) {
+    if (!name || !lastName || !password || (!email && !phoneNumber) ||!userRole) {
       return reply
         .status(400)
         .send({ success: false, message: "Required fields are missing" });
@@ -23,7 +23,7 @@ export const register = async (req, reply) => {
       if (!emailRegex.test(email.toLowerCase().trim())) {
         return reply
           .status(400)
-          .send({ success: false, message: "Email is not valid" });
+          .json({ success: false, message: "Email is not valid" });
       }
       //CHECK DUPLICATION
       const duplicateUser = await User.findOne({
@@ -32,7 +32,7 @@ export const register = async (req, reply) => {
       if (duplicateUser) {
         return reply
           .status(400)
-          .send({ success: false, message: "Email  already exists" });
+          .json({ success: false, message: "Email  already exists" });
       }
     }
     const newUser = await User.create({
@@ -57,7 +57,8 @@ export const register = async (req, reply) => {
   }
 };
 
-export const login = async (req, reply) => {
+
+ const login = async (req, reply) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return reply
@@ -77,10 +78,11 @@ export const login = async (req, reply) => {
     // if (user.userRole !== "admin" && user.userRole !== "staff") {
     //     return next(new ErrorResponse(MESSAGE.ACCESS_DENIED, 400));
     // }
-
+    const token=jwtToken(user)
     return reply.status(200).send({
       success: true,
       message: "Login Successfully",
+      token:token,
       data: user,
     });
   } catch (err) {
@@ -90,3 +92,41 @@ export const login = async (req, reply) => {
     });
   }
 };
+const protectedRoute=async(req,res)=>{
+  try {
+    return reply.json(
+      {
+        succes:true
+      }
+    )
+  } catch (error) {
+    return reply.status(500).send({
+      message: "Internal Server Error",
+      error: err.message,
+    });
+  }
+}
+
+ const jwtToken = (user) => {
+  // console.log(process.env.JWT_SECRET_KEY)
+
+  return jsonWebToken.sign(
+    {
+        id: user.id,
+        userRole: user.userRole,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        dataStatus: user.dataStatus,
+        email: user.email,
+    },
+    "12345678",
+    {
+        expiresIn: "72h", // Set expiration to 72 hours
+    }
+);
+
+
+}
+
+
+module.exports={register,login,protectedRoute}

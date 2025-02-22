@@ -1,11 +1,10 @@
-
 const User = require("../../model/user");
 
 
-const patientList = async (req, reply) => {
+const donorList = async (req, reply) => {
   try {
     const { name } = req.query;
-    // let query = { userRole: "patient" };
+    let query = { userRole: "donor" };
     if (name) {
       query = {
         ...query,
@@ -17,7 +16,7 @@ const patientList = async (req, reply) => {
     const list = await User.find(query);
     return reply.json({
       success: true,
-      message: "Patients List",
+      message: "Donors List",
       data: list,
     });
   } catch (error) {
@@ -28,7 +27,7 @@ const patientList = async (req, reply) => {
   }
 };
 
- const getpatientDetail = async (req, reply) => {
+ const getDonorDetail = async (req, reply) => {
   try {
     const { id } = req.params;
     const patientDetail = await User.findById({
@@ -38,12 +37,12 @@ const patientList = async (req, reply) => {
     if (!patientDetail) {
       return reply.json({
         success: false,
-        message: "patient Not found",
+        message: "Donor Not found",
       });
     }
     return reply.json({
       success: true,
-      message: "patient Detail",
+      message: "Donor Detail",
       data: patientDetail,
     });
   } catch (error) {
@@ -54,7 +53,7 @@ const patientList = async (req, reply) => {
   }
 };
 
- const deletePatient = async (req, reply) => {
+ const deleteDonor = async (req, reply) => {
   try {
     const { id } = req.params;
     const delPatient = await User.findByIdAndDelete({
@@ -63,7 +62,7 @@ const patientList = async (req, reply) => {
     if (!delPatient) {
       return reply.json({
         success: false,
-        message: "Patient not found",
+        message: "Donor not found",
       });
     }
     return reply.json({
@@ -79,7 +78,7 @@ const patientList = async (req, reply) => {
   }
 };
 
- const updatePatient = async (req, reply) => {
+ const updateDonor = async (req, reply) => {
   try {
     const { id } = req.params;
     const { firstName, lastName, emergencyNumber, phoneNumber } = req.body;
@@ -99,7 +98,7 @@ const patientList = async (req, reply) => {
     );
     return reply.json({
       success: true,
-      messsage: "patient updated ",
+      messsage: "Donor updated ",
       data: updatePatient,
     });
   } catch (error) {
@@ -109,7 +108,4 @@ const patientList = async (req, reply) => {
     });
   }
 };
-
-
-
-module.exports={updatePatient,patientList,getpatientDetail,deletePatient}
+module.exports={donorList,getDonorDetail,deleteDonor,updateDonor}
