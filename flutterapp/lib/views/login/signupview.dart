@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutterapp/components/custom-button.dart';
 import 'package:flutterapp/components/custom-textfield.dart';
+import 'package:flutterapp/consts/endPoints.dart';
 import 'package:flutterapp/consts/strings.dart';
 import 'package:get/get.dart';
 import 'package:velocity_x/velocity_x.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 
 
 class SignupView extends StatefulWidget {
@@ -23,18 +27,82 @@ class _SignupViewState extends State<SignupView> {
   final TextEditingController bloodTypeController = TextEditingController();
   final TextEditingController organDonationStatusController = TextEditingController();
 
-//   Future<void> signupCall() async {
-//     try {
-//       final userData = {
-//         'name': nameController.text,
+  // Add base URL constant
+  // final String baseUrl = 'http://192.168.0.106:4000/api/auth/register'; // Replace with your actual API base URL
 
-//       'email': emailController.text,
-//       'password': passwordController.text,
-//     };
-//   }catch(e){
-//     print('Error during signup: $e');
-//   }
-// }
+  // Add signup function
+  Future<void> signupCall() async {
+    try {
+      // Basic validation
+      if (nameController.text.isEmpty || 
+          emailController.text.isEmpty || 
+          passwordController.text.isEmpty ||
+          confirmPasswordController.text.isEmpty) {
+        throw 'Please fill all required fields';
+      }
+
+      if (passwordController.text != confirmPasswordController.text) {
+        throw 'Passwords do not match';
+      }
+
+      // Prepare base user data
+      Map<String, dynamic> userData = {
+        'name': nameController.text,
+        'email': emailController.text,
+        'password': passwordController.text,
+        'userRole': selectedRole,
+      };
+
+      // Add role-specific data
+      if (selectedRole == 'doctor') {
+        if (specializationController.text.isEmpty) {
+          throw 'Please enter specialization';
+        }
+        userData['specialization'] = specializationController.text;
+      } else if (selectedRole == 'donor') {
+        if (bloodTypeController.text.isEmpty || organDonationStatusController.text.isEmpty) {
+          throw 'Please select blood type and organ for donation';
+        }
+        userData['bloodType'] = bloodTypeController.text;
+        userData['organType'] = organDonationStatusController.text;
+      }
+
+      // Make API call
+      final response = await http.post(
+        Uri.parse(Endpoints.register),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(userData),
+      );
+      print(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Success
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Signup successful!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Navigate to login page
+        Navigator.pop(context);
+      } else {
+        // Handle error response
+        final errorData = json.decode(response.body);
+        throw errorData['message'] ?? 'Signup failed';
+      }
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   // New function to clear form
   void clearForm() {
@@ -217,22 +285,7 @@ class _SignupViewState extends State<SignupView> {
                       CustomButton(
                         buttonText: "Sign Up",
                         onTap: () async {
-                          try {
-                            final userData = {
-                              'name': nameController.text,
-                              'email': emailController.text,
-                              'password': passwordController.text,
-                              'role': selectedRole,
-                              if (selectedRole == 'doctor')
-                                'specialization': specializationController.text,
-                            };
-                            
-                            // Your API call here
-                            // await yourApiService.signup(userData);
-                            
-                          } catch (e) {
-                            print('Error during signup: $e');
-                          }
+                          await signupCall();
                         },
                       ),
                       20.heightBox,

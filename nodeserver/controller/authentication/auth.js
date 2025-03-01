@@ -9,11 +9,13 @@ const register = async (req, reply) => {
     email,
       password,
       userRole,
-      phoneNumber,
+      // phoneNumber,
       bloodType,
       specialization,
+      organType
     } = req.body;
-    if (!name || !lastName || !password || (!email && !phoneNumber) ||!userRole) {
+    console.log(req.body)
+    if (!name ||  !password || !email  ||!userRole) {
       return reply
         .status(400)
         .send({ success: false, message: "Required fields are missing" });
@@ -36,14 +38,15 @@ const register = async (req, reply) => {
       }
     }
     const newUser = await User.create({
-      firstName: firstName,
-      lastName: lastName,
+      name: name,
       userRole: userRole,
       password: password,
       email: email,
       bloodType: bloodType,
       specialization: specialization,
+      selectedOrgan:organType
     });
+    console.log(newUser)
     return reply.send({
       success: true,
       message: "Created SuccessFully",

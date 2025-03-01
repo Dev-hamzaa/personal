@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema(
     bloodType: { type: String },
     specialization: { type: String },
     selectedOrgan:{type:String},
-    phoneNumber: { type: String },
+    // phoneNumber: { type: String },
     userRole: {
       type: String,
       enum: ["admin", "patient", "donor", "doctor"],

@@ -12,6 +12,7 @@ dependencies:
 
   velocity_x: any
   shared_preferences: ^2.2.2
+  http: any
 
   flutter:
     sdk: flutter

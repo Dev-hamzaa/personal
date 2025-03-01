@@ -5,9 +5,11 @@ const doctorRouter=require("./Routes/doctor")
 const connectDb = require("./config/db");
 const donorRouter = require("./Routes/donor");
 const patientRouter = require("./Routes/patient");
+const cors=require("cors")
 
 const app = express();
 
+app.use(cors())
 app.use(express.json());
 app.use(logger);
 const port = 4000;
