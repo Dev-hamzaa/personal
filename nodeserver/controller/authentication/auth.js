@@ -82,10 +82,11 @@ const register = async (req, reply) => {
     //     return next(new ErrorResponse(MESSAGE.ACCESS_DENIED, 400));
     // }
     const token=jwtToken(user)
+    console.log(user)
     return reply.status(200).send({
       success: true,
       message: "Login Successfully",
-      token:token,
+      // token:token,
       data: user,
     });
   } catch (err) {

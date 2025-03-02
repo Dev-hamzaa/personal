@@ -28,7 +28,7 @@ class _NavigationbarState extends State<Navigationbar> {
   Future<void> _loadUserRole() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      userRole = prefs.getString('userRole') ?? 'patient';
+      userRole = prefs.getString('userRole') ;
     });
     print('Current user role: $userRole');
   }
