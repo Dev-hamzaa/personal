@@ -3,51 +3,89 @@ import 'package:flutterapp/components/custom-button.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:flutterapp/views/patient/bookAppointment.dart';
 import 'package:flutterapp/components/header.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutterapp/consts/endPoints.dart';
 
-class PatientView extends StatelessWidget {
+class PatientView extends StatefulWidget {
   const PatientView({super.key});
 
-  // Add doctor list
-  final List<Map<String, dynamic>> doctors = const [
-    {
-      'name': 'Dr. Ali Usman',
-      'specialization': 'Cardiologist',
-      'rating': '4.5',
-      'reviews': '120',
-      'availability': '9:00 AM - 5:00 PM',
-    },
-    {
-      'name': 'Dr. Bilal',
-      'specialization': 'Neurologist',
-      'rating': '4.8',
-      'reviews': '95',
-      'availability': '10:00 AM - 6:00 PM',
-    },
-    {
-      'name': 'Dr. Ali',
-      'specialization': 'Orthopedic',
-      'rating': '4.6',
-      'reviews': '150',
-      'availability': '8:00 AM - 4:00 PM',
-    },
-  ];
+  @override
+  State<PatientView> createState() => _PatientViewState();
+}
+
+class _PatientViewState extends State<PatientView> {
+  List<Map<String, dynamic>> doctors = [];
+  bool isLoading = true;
+  String selectedSpecialty = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    fetchDoctors();
+  }
+
+  Future<void> fetchDoctors() async {
+    try {
+      final response = await http.get(
+        Uri.parse(Endpoints.getAllDoctors),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        
+        if (responseData['success'] == true && responseData['data'] != null) {
+          setState(() {
+            doctors = List<Map<String, dynamic>>.from(responseData['data']);
+            isLoading = false;
+          });
+        }
+      } else {
+        throw 'Failed to fetch doctors';
+      }
+    } catch (e) {
+      print('Error fetching doctors: $e');
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  List<Map<String, dynamic>> getFilteredDoctors() {
+    if (selectedSpecialty == 'All') {
+      return doctors;
+    }
+    return doctors.where((doctor) => 
+      doctor['specialization']?.toLowerCase() == selectedSpecialty.toLowerCase()
+    ).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final filteredDoctors = getFilteredDoctors();
+    
     return SafeArea(
       child: Container(
         color: Colors.white,
         child: Column(
           children: [
-            // Add header at the top
             const Header(),
-            
-            // Your existing PatientView content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
                   "Find Doctors".text.bold.xl2.make().p16(),
 
                   // Search Bar
@@ -80,9 +118,16 @@ class PatientView extends StatelessWidget {
                       ].map((specialty) {
                         return Container(
                           margin: const EdgeInsets.only(right: 10),
-                          child: Chip(
+                          child: FilterChip(
                             label: specialty.text.make(),
+                            selected: selectedSpecialty == specialty,
+                            onSelected: (bool selected) {
+                              setState(() {
+                                selectedSpecialty = specialty;
+                              });
+                            },
                             backgroundColor: Colors.blue.withOpacity(0.1),
+                            selectedColor: Colors.blue.withOpacity(0.3),
                           ),
                         );
                       }).toList(),
@@ -91,98 +136,74 @@ class PatientView extends StatelessWidget {
 
                   // Doctors List
                   Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: doctors.length, // Changed to doctors.length
-                      itemBuilder: (context, index) {
-                        final doctor = doctors[index]; // Get doctor data
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              children: [
-                                Row(
+                    child: isLoading 
+                      ? const Center(child: CircularProgressIndicator())
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filteredDoctors.length,
+                          itemBuilder: (context, index) {
+                            final doctor = filteredDoctors[index];
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
                                   children: [
-                                    CircleAvatar(
-                                      radius: 30,
-                                      backgroundColor: Colors.grey[300],
-                                      child: const Icon(
-                                        Icons.person,
-                                        size: 30,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    20.widthBox,
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            doctor['name']!,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 18,
-                                            ),
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 30,
+                                          backgroundColor: Colors.grey[300],
+                                          child: const Icon(
+                                            Icons.person,
+                                            size: 30,
+                                            color: Colors.grey,
                                           ),
-                                          Text(
-                                            doctor['specialization']!,
-                                            style: const TextStyle(
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                          Row(
+                                        ),
+                                        20.widthBox,
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              const Icon(
-                                                Icons.star,
-                                                color: Colors.yellow,
-                                                size: 16,
-                                              ),
-                                              Text(" ${doctor['rating']}"),
                                               Text(
-                                                " (${doctor['reviews']} reviews)",
+                                                "Dr. ${doctor['name'] ?? 'Unknown'}",
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18,
+                                                ),
+                                              ),
+                                              Text(
+                                                doctor['specialization'] ?? 'Specialization not specified',
                                                 style: const TextStyle(
                                                   color: Colors.grey,
                                                 ),
                                               ),
                                             ],
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
+                                    ),
+                                    10.heightBox,
+                                    CustomButton(
+                                      buttonText: "Book Appointment",
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => AppointmentBookingView(
+                                              doctorId: doctor['_id'],
+                                              doctorName: doctor['name'],
+                                            ),
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ],
                                 ),
-                                10.heightBox,
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.access_time,
-                                      color: Colors.blue,
-                                      size: 16,
-                                    ),
-                                    10.widthBox,
-                                    "Available Today: ".text.gray500.make(),
-                                    Text(doctor['availability']!),
-                                  ],
-                                ),
-                                10.heightBox,
-                                CustomButton(
-                                  buttonText: "Book Appointment",
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const AppointmentBookingView(),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                              ),
+                            );
+                          },
+                        ),
                   ),
                 ],
               ),

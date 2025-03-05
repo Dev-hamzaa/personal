@@ -32,11 +32,12 @@ const userSchema = new mongoose.Schema(
     },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     modifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    availablibility:[
+    weeklySchedule:[
       {
+        _id:false,
         day:String,
-        startDate:mongoose.Schema.Types.Date,
-        endDate:mongoose.Schema.Types.Date,
+        start:mongoose.Schema.Types.Date,
+        end:mongoose.Schema.Types.Date,
       }
     ]
   },
