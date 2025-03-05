@@ -8,10 +8,96 @@ import 'package:flutterapp/views/navigationBar.dart';
 import 'package:get/get.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutterapp/consts/endPoints.dart';
 
 
 class LoginView extends StatelessWidget {
-  const LoginView({super.key});
+  LoginView({super.key});
+
+  // Add controllers for email and password
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  // Add login function
+  Future<void> loginCall(BuildContext context) async {
+    try {
+      // Validate fields
+      if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please fill in all fields'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Prepare login data
+      Map<String, String> loginData = {
+        'email': emailController.text,
+        'password': passwordController.text,
+      };
+
+      print('Making login API call');
+      print('Request body: ${json.encode(loginData)}');
+
+      // Make API call
+      final response = await http.post(
+        Uri.parse(Endpoints.login),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(loginData),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        // Parse response
+        final responseData = json.decode(response.body);
+        final userData = responseData['data']; // Get the nested data object
+        
+        // Store user data
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userId', userData['_id'] ?? '');
+        await prefs.setString('userName', userData['name'] ?? '');
+        await prefs.setString('userRole', userData['userRole'] ?? '');
+        
+        print('Stored user data: ID=${userData['_id']}, Name=${userData['name']}, Role=${userData['userRole']}');
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login successful!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Navigate to main layout
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const Navigationbar(),
+          ),
+        );
+      } else {
+        // Handle error
+        final errorData = json.decode(response.body);
+        throw errorData['message'] ?? 'Login failed';
+      }
+    } catch (e) {
+      print('Login error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,11 +159,14 @@ class LoginView extends StatelessWidget {
                           hint: AppStrings.emailHint,
                           prefixIcon: Icons.email,
                           isPassword: false,
+                          textController: emailController,
                         ),
                         10.heightBox,
-                        CustomTextField(hint: AppStrings.passwordHint,
-                        isPassword: true,
-                        prefixIcon: Icons.lock,
+                        CustomTextField(
+                          hint: AppStrings.passwordHint,
+                          isPassword: true,
+                          prefixIcon: Icons.lock,
+                          textController: passwordController,
                         ),
                         20.heightBox,
 
@@ -88,22 +177,7 @@ class LoginView extends StatelessWidget {
                         20.heightBox,
                         CustomButton(
                           buttonText: AppStrings.login,
-                          onTap: () async {
-                            String role = 'patient'; // This will come from your API
-                            
-                            // Use only one method to store the role, remove the duplicate
-                            await SharedPreferences.getInstance().then((prefs) {
-                              prefs.setString('userRole', role);
-                            });
-                            
-                            // Navigate to MainLayout
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const Navigationbar(),
-                              ),
-                            );
-                          },
+                          onTap: () => loginCall(context),
                         ),
                         20.heightBox,
 

@@ -1,5 +1,6 @@
 const {getDonorDetail,updateDonor,deleteDonor,donorList}=require("../controller/Donor/donor")
-const express=require("express")
+const express=require("express");
+const { userProtected } = require("../middleware/auth");
 
 
 const donorRouter = express.Router();

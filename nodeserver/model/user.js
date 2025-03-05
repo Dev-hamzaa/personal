@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema(
     bloodType: { type: String },
     specialization: { type: String },
     selectedOrgan:{type:String},
-    phoneNumber: { type: String },
+    // phoneNumber: { type: String },
     userRole: {
       type: String,
       enum: ["admin", "patient", "donor", "doctor"],
@@ -32,11 +32,12 @@ const userSchema = new mongoose.Schema(
     },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     modifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    availablibility:[
+    weeklySchedule:[
       {
+        _id:false,
         day:String,
-        startDate:mongoose.Schema.Types.Date,
-        endDate:mongoose.Schema.Types.Date,
+        start:mongoose.Schema.Types.Date,
+        end:mongoose.Schema.Types.Date,
       }
     ]
   },

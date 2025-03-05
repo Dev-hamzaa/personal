@@ -1,6 +1,7 @@
 const express=require("express");
 
-const { updateDoctor, doctorList,deleteDoctor,doctorDetail }=require("../controller/doctor/doctor")
+const { updateDoctor, doctorList,deleteDoctor,doctorDetail }=require("../controller/doctor/doctor");
+const { userProtected } = require("../middleware/auth");
 const docRouter = express.Router();
 
 docRouter.route("/").get(doctorList);

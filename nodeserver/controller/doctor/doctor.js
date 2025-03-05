@@ -1,5 +1,5 @@
 const User=require("../../model/user")
-
+const { DateTime } = require('luxon')
 
 const createDoctor=async(req,reply)=>{
 try {
@@ -68,28 +68,42 @@ try {
   }
 };
 
- const doctorDetail = async (req, reply) => {
+const doctorDetail = async (req, reply) => {
   try {
     const { id } = req.params;
-    const docDetail = await User.findById({
-      _id: id,
-    });
+    const docDetail = await User.findById(id); 
 
     if (!docDetail) {
       return reply.json({
         success: false,
-        message: "doctor Not found",
+        message: "Doctor not found",
       });
     }
+
+    const formattedSchedule = docDetail.weeklySchedule?.map(({ day, start, end }) => {
+      return {
+        day,
+        start: DateTime.fromJSDate(start).toFormat('hh:mm a'),
+        end: DateTime.fromJSDate(end).toFormat('hh:mm a')
+      };
+    }) || []; 
+
     return reply.json({
       success: true,
       message: "Doctor Detail",
-      data: docDetail,
+      data: {
+        ...docDetail.toObject(), // Convert Mongoose document to plain object
+        weeklySchedule: formattedSchedule, // Replace raw dates with formatted schedule
+      },
     });
+
   } catch (error) {
+    console.error(error);
+    
     return reply.json({
-      message: "internal server error",
-      data: error.message,
+      success: false,
+      message: "Internal server error",
+      error: error.message,
     });
   }
 };
@@ -119,41 +133,56 @@ try {
   }
 };
 
- const updateDoctor = async (req, reply) => {
+
+const updateDoctor = async (req, reply) => {
   try {
     const { id } = req.params;
-    const { name,email, specialization, phoneNumber,weeklySchedule } = req.body;
+    const { name, email, specialization, phoneNumber, weeklySchedule } = req.body;
+    console.log(req.body)
 
-    const foundDoctor=await User.findById(
-      {
-        _id:id
-      }
-    )
+    // Check if doctor exists
+    const foundDoctor = await User.findById(id);
+    if (!foundDoctor) {
+      return reply.json({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    // Convert time strings to Date objects
+    const formattedSchedule = weeklySchedule?.map(({ day, start, end }) => ({
+      day,
+      start: DateTime.fromFormat(start, 'hh:mm a').toJSDate(),
+      end: DateTime.fromFormat(end, 'hh:mm a').toJSDate(),
+    }));
+
+    // Update doctor in DB
     const updatedDoctor = await User.findByIdAndUpdate(
-      {
-        _id: id,
-      },
+      id, // Pass ID directly instead of `{ _id: id }`
       {
         name,
-        email:email,
+        email,
         specialization,
         phoneNumber,
-        weeklySchedule
+        weeklySchedule: formattedSchedule, // Store the converted schedule
       },
-      {
-        new: true,
-      }
+      { new: true }
     );
+
     return reply.json({
       success: true,
-      messsage: "Doctor updated ",
+      message: "Doctor updated",
       data: updatedDoctor,
     });
+
   } catch (error) {
+    console.error(error);
     return reply.json({
-      message: "internal server error",
-      data: error.message,
+      success: false,
+      message: "Internal server error",
+      error: error.message,
     });
   }
 };
+
 module.exports={updateDoctor,deleteDoctor,doctorDetail,doctorList}
