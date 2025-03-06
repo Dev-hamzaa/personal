@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutterapp/components/header.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutterapp/consts/endPoints.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DoctorHomeView extends StatefulWidget {
   const DoctorHomeView({super.key});
@@ -9,44 +13,179 @@ class DoctorHomeView extends StatefulWidget {
 }
 
 class _DoctorHomeViewState extends State<DoctorHomeView> {
-  // Add this dummy data at class level
-  final List<Map<String, dynamic>> appointments = [
-    {
-      'patientName': 'Ali',
-      'age': '45',
-      'time': '09:00 AM',
-      'date': '2024-03-20',
-      'reason': 'Regular Checkup',
-      'status': 'pending',
-    },
-    {
-      'patientName': 'Ahmed',
-      'age': '52',
-      'time': '10:00 AM',
-      'date': '2024-03-20',
-      'reason': 'Follow-up',
-      'status': 'pending',
-    },
-    {
-      'patientName': 'Hamza',
-      'age': '35',
-      'time': '11:00 AM',
-      'date': '2024-03-20',
-      'reason': 'Consultation',
-      'status': 'pending',
-    },
-  ];
+  bool isLoading = true;
+  List<dynamic> appointments = [];
+  Map<String, dynamic>? doctorInfo;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchDoctorInfo();
+    fetchDoctorAppointments();
+  }
+
+  Future<void> fetchDoctorInfo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final doctorId = prefs.getString('userId');
+
+      if (doctorId == null) {
+        throw 'Doctor ID not found';
+      }
+
+      print('Fetching doctor info for ID: $doctorId');
+
+      final response = await http.get(
+        Uri.parse('${Endpoints.getDoctorDetails}/$doctorId'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        print('\n=== Doctor Info Response ===');
+        print('Success: ${responseData['success']}');
+        print('Message: ${responseData['message']}');
+        print('Data: ${json.encode(responseData['data'])}');
+        print('=====================================\n');
+
+        if (responseData['success'] == true) {
+          setState(() {
+            doctorInfo = responseData['data'];
+          });
+        }
+      }
+    } catch (e) {
+      print('Error fetching doctor info: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> fetchDoctorAppointments() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final doctorId = prefs.getString('userId');
+
+      if (doctorId == null) {
+        throw 'Doctor ID not found';
+      }
+
+      // Get today's date in YYYY-MM-DD format
+      final today = DateTime.now();
+      final formattedDate =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      print(
+          'Fetching appointments for doctor: $doctorId on date: $formattedDate');
+
+      final response = await http.get(
+        Uri.parse('${Endpoints.getAppointments}?doctor=$doctorId&'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        print('\n=== Doctor Appointments Response ===');
+        print('Success: ${responseData['success']}');
+        print('Message: ${responseData['message']}');
+        print('Data: ${json.encode(responseData['data'])}');
+        print('=====================================\n');
+
+        if (responseData['success'] == true) {
+          setState(() {
+            appointments = responseData['data'] ?? [];
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error fetching doctor appointments: $e');
+      setState(() {
+        isLoading = false;
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> updateAppointmentStatus(
+      String appointmentId, String status) async {
+    try {
+      print('Updating appointment status: $appointmentId to $status');
+
+      final response = await http.patch(
+        Uri.parse('${Endpoints.getAppointments}/$appointmentId'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'status': status,
+        }),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['success'] == true) {
+          // Refresh the appointments list
+          await fetchDoctorAppointments();
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Appointment ${status} successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          throw responseData['message'] ??
+              'Failed to update appointment status';
+        }
+      } else {
+        throw 'Failed to update appointment status';
+      }
+    } catch (e) {
+      print('Error updating appointment status: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
-        color: Colors.white,  // Add background color to prevent transparency
+        color: Colors.white,
         child: Column(
           children: [
-            // Add header at the top
             const Header(),
-            
+
             // Fixed Profile Section
             Container(
               padding: const EdgeInsets.all(16),
@@ -56,7 +195,6 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
               ),
               child: Row(
                 children: [
-                  // Doctor Image
                   CircleAvatar(
                     radius: 40,
                     backgroundColor: Colors.grey[300],
@@ -67,146 +205,127 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
                     ),
                   ),
                   const SizedBox(width: 20),
-                  // Doctor Info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Dr. Abuzar',
-                          style: TextStyle(
+                        Text(
+                          'Hi, Dr. ${doctorInfo?['name'] ?? 'Loading...'}',
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-
-                        const Text('Cardiologist'),
+                        Text(doctorInfo?['specialization'] ?? 'Loading...'),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             // Scrollable List Section
             Expanded(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: (scrollNotification) {
-                  // Prevent parent scroll
-                  return true;
-                },
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  physics: const ClampingScrollPhysics(),  // Changed scroll physics
-                  itemCount: appointments.length,
-                  itemBuilder: (context, index) {
-                    final appointment = appointments[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        children: [
-                          ListTile(
-                            title: Text(appointment['patientName']!),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 4),
-                                Text('Age: ${appointment['age']}'),
-                                Text('Time: ${appointment['time']}'),
-                                Text('Date: ${appointment['date']}'),
-                                Text('Reason: ${appointment['reason']}'),
-                              ],
-                            ),
-                            isThreeLine: true,
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                if (appointment['status'] == 'pending') ...[
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        appointments[index]['status'] = 'accepted';
-                                      });
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Appointment Accepted'),
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      physics: const ClampingScrollPhysics(),
+                      itemCount: appointments.length,
+                      itemBuilder: (context, index) {
+                        final appointment = appointments[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: Column(
+                            children: [
+                              ListTile(
+                                title: Text(appointment['patientId']['name'] ??
+                                    'Unknown Patient'),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 4),
+                                    Text('Time: ${appointment['time']}'),
+                                    Text(
+                                        'Date: ${appointment['appointmentDate']}'),
+                                    Text(
+                                        'Reason: ${appointment['reason'] ?? 'Not specified'}'),
+                                  ],
+                                ),
+                                isThreeLine: true,
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    if (appointment['status'] == 'pending') ...[
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          updateAppointmentStatus(
+                                              appointment['_id'], 'accepted');
+                                        },
+                                        style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.green,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12),
                                         ),
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    ),
-                                    child: const Text('Accept'),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        appointments[index]['status'] = 'declined';
-                                      });
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Appointment Declined'),
+                                        child: const Text('Accept'),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          updateAppointmentStatus(
+                                              appointment['_id'], 'declined');
+                                        },
+                                        style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.red,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12),
                                         ),
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red,
-                                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    ),
-                                    child: const Text('Decline'),
-                                  ),
-                                ] else if (appointment['status'] == 'accepted') ...[
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        appointments[index]['status'] = 'completed';
-                                      });
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Appointment Marked as Completed'),
+                                        child: const Text('Decline'),
+                                      ),
+                                    ] else if (appointment['status'] ==
+                                        'accepted') ...[
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          updateAppointmentStatus(
+                                              appointment['_id'], 'completed');
+                                        },
+                                        style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.blue,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12),
                                         ),
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue,
-                                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    ),
-                                    child: const Text('Mark as Completed'),
-                                  ),
-                                ] else if (appointment['status'] == 'completed') ...[
-                                  const Text(
-                                    'Completed',
-                                    style: TextStyle(
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ] else if (appointment['status'] == 'declined') ...[
-                                  const Text(
-                                    'Declined',
-                                    style: TextStyle(
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
+                                        child: const Text('Mark as Completed'),
+                                      ),
+                                    ] else if (appointment['status'] ==
+                                        'completed') ...[
+                                      const Text(
+                                        'Completed',
+                                        style: TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ] else if (appointment['status'] ==
+                                        'declined') ...[
+                                      const Text(
+                                        'Declined',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -224,7 +343,7 @@ class DoctorLayout extends StatefulWidget {
 
 class _DoctorLayoutState extends State<DoctorLayout> {
   int _currentIndex = 0;
-  
+
   final List<Widget> _screens = [
     const DoctorHomeView(), // Home/Appointments view
     const Center(child: Text('Settings')), // Placeholder for Settings

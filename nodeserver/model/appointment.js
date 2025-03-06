@@ -1,19 +1,25 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const appointmentSchema = new mongoose.Schema(
   {
     patientId: {
-      type: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
+      type: mongoose.Schema.Types.ObjectId, // ✅ Fix: Directly use ObjectId
+      ref: "User",
     },
     doctorId: {
-      type: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
+      type: mongoose.Schema.Types.ObjectId, // ✅ Fix: Directly use ObjectId
+      ref: "User",
     },
     appointmentDate: {
-      type: mongoose.Schema.type.Date,
+      type: Date,
+    },
+    time: {
+      type: String,
     },
     status: {
       type: String,
       enum: ["complete", "cancel", "pending"],
+      default: "pending",
     },
   },
   {
@@ -21,4 +27,5 @@ const appointmentSchema = new mongoose.Schema(
   }
 );
 
-export const Appointment = mongoose.model("Appointment", appointmentSchema);
+const Appointment = mongoose.model("Appointment", appointmentSchema);
+module.exports = { Appointment };

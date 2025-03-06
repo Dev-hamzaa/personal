@@ -39,8 +39,9 @@ class _PatientViewState extends State<PatientView> {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        
+
         if (responseData['success'] == true && responseData['data'] != null) {
+          if (!mounted) return;
           setState(() {
             doctors = List<Map<String, dynamic>>.from(responseData['data']);
             isLoading = false;
@@ -51,6 +52,7 @@ class _PatientViewState extends State<PatientView> {
       }
     } catch (e) {
       print('Error fetching doctors: $e');
+      if (!mounted) return;
       setState(() {
         isLoading = false;
       });
@@ -67,15 +69,17 @@ class _PatientViewState extends State<PatientView> {
     if (selectedSpecialty == 'All') {
       return doctors;
     }
-    return doctors.where((doctor) => 
-      doctor['specialization']?.toLowerCase() == selectedSpecialty.toLowerCase()
-    ).toList();
+    return doctors
+        .where((doctor) =>
+            doctor['specialization']?.toLowerCase() ==
+            selectedSpecialty.toLowerCase())
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final filteredDoctors = getFilteredDoctors();
-    
+
     return SafeArea(
       child: Container(
         color: Colors.white,
@@ -136,74 +140,77 @@ class _PatientViewState extends State<PatientView> {
 
                   // Doctors List
                   Expanded(
-                    child: isLoading 
-                      ? const Center(child: CircularProgressIndicator())
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: filteredDoctors.length,
-                          itemBuilder: (context, index) {
-                            final doctor = filteredDoctors[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        CircleAvatar(
-                                          radius: 30,
-                                          backgroundColor: Colors.grey[300],
-                                          child: const Icon(
-                                            Icons.person,
-                                            size: 30,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                        20.widthBox,
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                "Dr. ${doctor['name'] ?? 'Unknown'}",
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 18,
-                                                ),
-                                              ),
-                                              Text(
-                                                doctor['specialization'] ?? 'Specialization not specified',
-                                                style: const TextStyle(
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    10.heightBox,
-                                    CustomButton(
-                                      buttonText: "Book Appointment",
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => AppointmentBookingView(
-                                              doctorId: doctor['_id'],
-                                              doctorName: doctor['name'],
+                    child: isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: filteredDoctors.length,
+                            itemBuilder: (context, index) {
+                              final doctor = filteredDoctors[index];
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 30,
+                                            backgroundColor: Colors.grey[300],
+                                            child: const Icon(
+                                              Icons.person,
+                                              size: 30,
+                                              color: Colors.grey,
                                             ),
                                           ),
-                                        );
-                                      },
-                                    ),
-                                  ],
+                                          20.widthBox,
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  "Dr. ${doctor['name'] ?? 'Unknown'}",
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 18,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  doctor['specialization'] ??
+                                                      'Specialization not specified',
+                                                  style: const TextStyle(
+                                                    color: Colors.grey,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      10.heightBox,
+                                      CustomButton(
+                                        buttonText: "Book Appointment",
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  AppointmentBookingView(
+                                                doctorId: doctor['_id'],
+                                                doctorName: doctor['name'],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
+                              );
+                            },
+                          ),
                   ),
                 ],
               ),
