@@ -28,30 +28,27 @@ class _NavigationbarState extends State<Navigationbar> {
   Future<void> _loadUserRole() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      userRole = prefs.getString('userRole') ;
+      userRole = prefs.getString('userRole');
     });
     print('Current user role: $userRole');
   }
 
   Widget _getPage(int index) {
     if (index == 0) {
-      return userRole == 'doctor' 
-          ? const DoctorHomeView() 
+      return userRole == 'doctor'
+          ? const DoctorHomeView()
           : userRole == 'donor'
               ? const DonorView()
               : const PatientView();
-
     }
     if (index == 1) {
-      return userRole == 'doctor' 
-          ? const DoctorProfileView() 
+      return userRole == 'doctor'
+          ? const DoctorProfileView()
           : userRole == 'donor'
               ? const DonorProfileView()
               : const ProfileView();
     }
-    return userRole == 'doctor' 
-        ? const Center(child: Text('Settings'))
-        : const PatientAppointments();
+    return const PatientAppointments();
   }
 
   @override
@@ -76,10 +73,12 @@ class _NavigationbarState extends State<Navigationbar> {
             icon: Icon(Icons.person),
             label: 'Profile',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(userRole == 'doctor' ? Icons.settings : Icons.calendar_today),
-            label: userRole == 'doctor' ? 'Settings' : 'Appointments',
-          ),
+          if (userRole != 'doctor')
+            BottomNavigationBarItem(
+              icon: Icon(
+                  userRole == 'donor' ? Icons.settings : Icons.calendar_today),
+              label: userRole == 'donor' ? 'Settings' : 'Appointments',
+            ),
         ],
       ),
     );
