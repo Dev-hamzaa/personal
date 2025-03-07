@@ -32,7 +32,7 @@ class _PatientRequestsState extends State<PatientRequests> {
       }
 
       final response = await http.get(
-        Uri.parse('${Endpoints.baseUrl}api/request/?patientId=$userId'),
+        Uri.parse('${Endpoints.baseUrl}api/request/patient/?patientId=$userId'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -59,7 +59,7 @@ class _PatientRequestsState extends State<PatientRequests> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text('$e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -148,29 +148,39 @@ class _PatientRequestsState extends State<PatientRequests> {
                                       ],
                                     ),
                                     const SizedBox(height: 16),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.medical_services,
-                                            color: Colors.grey[600]),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Requested Organ: ${request['requestedOrgan'] ?? 'N/A'}',
-                                          style: TextStyle(
-                                            color: Colors.grey[800],
-                                            fontSize: 16,
+                                    if (request['requestedOrgan'] != null &&
+                                        request['requestedOrgan']
+                                            .toString()
+                                            .isNotEmpty &&
+                                        request['bloodOnly'] != true)
+                                      Row(
+                                        children: [
+                                          Icon(Icons.medical_services,
+                                              color: Colors.grey[600]),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Requested Organ: ${request['requestedOrgan']}',
+                                            style: TextStyle(
+                                              color: Colors.grey[800],
+                                              fontSize: 16,
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
+                                        ],
+                                      ),
                                     const SizedBox(height: 8),
-                                    if (request['bloodType'] != null)
+                                    if (request['bloodType'] != null &&
+                                        request['bloodType']
+                                            .toString()
+                                            .isNotEmpty)
                                       Row(
                                         children: [
                                           Icon(Icons.bloodtype,
                                               color: Colors.grey[600]),
                                           const SizedBox(width: 8),
                                           Text(
-                                            'Blood Type: ${request['bloodType']}',
+                                            request['bloodOnly'] == true
+                                                ? 'Requested Blood Type: ${request['bloodType']}'
+                                                : 'Blood Type: ${request['bloodType']}',
                                             style: TextStyle(
                                               color: Colors.grey[800],
                                               fontSize: 16,

@@ -7,11 +7,14 @@ const {
   getRequestDetail,
   updateRequest,
   delRequest,
+  getPatientRequest,
 } = require("../controller/Donor/donorRequest");
 const requestRouter = express.Router();
 
 requestRouter.route("/").post(createRequest);
 requestRouter.route("/").get(getRequests);
+requestRouter.route("/patient").get(getPatientRequest);
+
 requestRouter
   .route("/:id")
   .get(getRequestDetail)

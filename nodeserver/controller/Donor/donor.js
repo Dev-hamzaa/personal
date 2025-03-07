@@ -80,16 +80,16 @@ const deleteDonor = async (req, reply) => {
 const updateDonor = async (req, reply) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, emergencyNumber, phoneNumber } = req.body;
+    const { name, phone, selectedOrgan, bloodType } = req.body;
     const updatePatient = await User.findByIdAndUpdate(
       {
         _id: id,
       },
       {
-        firstName,
-        lastName,
-        emergencyNumber,
-        phoneNumber,
+        name,
+        phone,
+        bloodType,
+        selectedOrgan,
       },
       {
         new: true,

@@ -322,20 +322,36 @@ class _DonorListViewState extends State<DonorListView> {
                                                                 .isEmpty
                                                             ? null
                                                             : selectedOrgan,
-                                                        items: (donor['selectedOrgan']
-                                                                    as List<
-                                                                        dynamic>?)
-                                                                ?.map((dynamic
-                                                                    value) {
-                                                              return DropdownMenuItem<
-                                                                  String>(
-                                                                value: value
-                                                                    .toString(),
-                                                                child: Text(value
-                                                                    .toString()),
-                                                              );
-                                                            }).toList() ??
-                                                            [],
+                                                        items: [
+                                                          DropdownMenuItem<
+                                                              String>(
+                                                            value: '',
+                                                            child: Text(
+                                                              'Clear',
+                                                              style: TextStyle(
+                                                                color: Colors
+                                                                    .grey[600],
+                                                                fontStyle:
+                                                                    FontStyle
+                                                                        .italic,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          ...(donor['selectedOrgan']
+                                                                      as List<
+                                                                          dynamic>?)
+                                                                  ?.map((dynamic
+                                                                      value) {
+                                                                return DropdownMenuItem<
+                                                                    String>(
+                                                                  value: value
+                                                                      .toString(),
+                                                                  child: Text(value
+                                                                      .toString()),
+                                                                );
+                                                              }).toList() ??
+                                                              [],
+                                                        ],
                                                         onChanged: (value) {
                                                           selectedOrgan =
                                                               value ?? '';
@@ -355,13 +371,15 @@ class _DonorListViewState extends State<DonorListView> {
                                                   ElevatedButton(
                                                     onPressed: () {
                                                       if (selectedOrgan
-                                                          .isEmpty) {
+                                                              .isEmpty &&
+                                                          selectedBloodType
+                                                              .isEmpty) {
                                                         ScaffoldMessenger.of(
                                                                 context)
                                                             .showSnackBar(
                                                           const SnackBar(
                                                             content: Text(
-                                                                'Please select an organ'),
+                                                                'Please select either blood type or organ'),
                                                             backgroundColor:
                                                                 Colors.red,
                                                           ),

@@ -51,9 +51,9 @@ class _NavigationbarState extends State<Navigationbar> {
               : const ProfileView();
     }
     if (index == 2) {
-      return userRole == 'donor'
-          ? const DonorProfileView()
-          : const PatientAppointments();
+      if (userRole == 'patient') {
+        return const PatientAppointments();
+      }
     }
     if (index == 3) {
       return const DonorListView();
@@ -101,11 +101,6 @@ class _NavigationbarState extends State<Navigationbar> {
             const BottomNavigationBarItem(
               icon: Icon(Icons.medical_services),
               label: 'Requests',
-            ),
-          ] else if (userRole == 'donor') ...[
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.volunteer_activism),
-              label: 'Donate',
             ),
           ],
         ],

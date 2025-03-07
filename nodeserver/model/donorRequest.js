@@ -10,9 +10,9 @@ const donorRequestSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId, // ✅ Fix: Directly use ObjectId
       ref: "User",
     },
-    // appointmentDate: {
-    //   type: Date,
-    // },
+    bloodType: {
+      type: String,
+    },
     requestedOrgan: {
       type: String,
     },
@@ -20,6 +20,10 @@ const donorRequestSchema = new mongoose.Schema(
       type: String,
       // enum: ["complete", "cancel", "pending"],
       default: "pending",
+    },
+    bloodOnly: {
+      type: Boolean,
+      default: false,
     },
   },
   {
