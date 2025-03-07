@@ -8,8 +8,6 @@ import 'package:velocity_x/velocity_x.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-
-
 class SignupView extends StatefulWidget {
   const SignupView({super.key});
 
@@ -19,23 +17,33 @@ class SignupView extends StatefulWidget {
 
 class _SignupViewState extends State<SignupView> {
   String selectedRole = 'patient'; // Changed to lowercase for API consistency
+  bool isLoading = false; // Add loading state
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
-  final TextEditingController specializationController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
+  final TextEditingController specializationController =
+      TextEditingController();
   final TextEditingController bloodTypeController = TextEditingController();
-  final TextEditingController organDonationStatusController = TextEditingController();
+  final TextEditingController organDonationStatusController =
+      TextEditingController();
 
   // Add base URL constant
   // final String baseUrl = 'http://192.168.0.106:4000/api/auth/register'; // Replace with your actual API base URL
 
   // Add signup function
   Future<void> signupCall() async {
+    if (isLoading) return; // Prevent multiple submissions
+
     try {
+      setState(() {
+        isLoading = true; // Set loading state
+      });
+
       // Basic validation
-      if (nameController.text.isEmpty || 
-          emailController.text.isEmpty || 
+      if (nameController.text.isEmpty ||
+          emailController.text.isEmpty ||
           passwordController.text.isEmpty ||
           confirmPasswordController.text.isEmpty) {
         throw 'Please fill all required fields';
@@ -60,12 +68,18 @@ class _SignupViewState extends State<SignupView> {
         }
         userData['specialization'] = specializationController.text;
       } else if (selectedRole == 'donor') {
-        if (bloodTypeController.text.isEmpty || organDonationStatusController.text.isEmpty) {
+        if (bloodTypeController.text.isEmpty ||
+            organDonationStatusController.text.isEmpty) {
           throw 'Please select blood type and organ for donation';
         }
         userData['bloodType'] = bloodTypeController.text;
-        userData['organType'] = organDonationStatusController.text;
+        userData['selectedOrgan'] = organDonationStatusController.text
+            .split(',')
+            .where((organ) => organ.isNotEmpty)
+            .toList();
       }
+
+      print('Sending signup request with data: ${json.encode(userData)}');
 
       // Make API call
       final response = await http.post(
@@ -75,17 +89,19 @@ class _SignupViewState extends State<SignupView> {
         },
         body: json.encode(userData),
       );
-      print(response.body);
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // Success
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Signup successful!'),
             backgroundColor: Colors.green,
           ),
         );
-        
+
         // Navigate to login page
         Navigator.pop(context);
       } else {
@@ -94,13 +110,20 @@ class _SignupViewState extends State<SignupView> {
         throw errorData['message'] ?? 'Signup failed';
       }
     } catch (e) {
-      // Show error message
+      print('Error during signup: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString()),
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false; // Reset loading state
+        });
+      }
     }
   }
 
@@ -115,7 +138,6 @@ class _SignupViewState extends State<SignupView> {
     bloodTypeController.clear();
     organDonationStatusController.clear();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -243,15 +265,28 @@ class _SignupViewState extends State<SignupView> {
                               prefixIcon: Icon(Icons.bloodtype),
                             ),
                             hint: const Text('Select Blood Type'),
-                            items: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
-                                .map((String value) {
+                            value: bloodTypeController.text.isEmpty
+                                ? null
+                                : bloodTypeController.text,
+                            items: [
+                              'A+',
+                              'A-',
+                              'B+',
+                              'B-',
+                              'AB+',
+                              'AB-',
+                              'O+',
+                              'O-'
+                            ].map((String value) {
                               return DropdownMenuItem<String>(
                                 value: value,
                                 child: Text(value),
                               );
                             }).toList(),
                             onChanged: (value) {
-                              bloodTypeController.text = value ?? '';
+                              setState(() {
+                                bloodTypeController.text = value ?? '';
+                              });
                             },
                           ),
                         ),
@@ -267,26 +302,83 @@ class _SignupViewState extends State<SignupView> {
                               border: InputBorder.none,
                               prefixIcon: Icon(Icons.volunteer_activism),
                             ),
-                            hint: const Text('Select Organ for Donation'),
-                            items: ['Kidney', 'Liver', 'Heart', 'Lungs', 'Pancreas', 'Small Bowel']
-                                .map((String value) {
+                            hint: const Text('Select Organs for Donation'),
+                            value: null,
+                            items: [
+                              'Kidney',
+                              'Liver',
+                              'Heart',
+                              'Lungs',
+                              'Pancreas',
+                              'Small Bowel'
+                            ].map((String value) {
                               return DropdownMenuItem<String>(
                                 value: value,
                                 child: Text(value),
                               );
                             }).toList(),
-                            onChanged: (value) {
-                              organDonationStatusController.text = value ?? '';
+                            onChanged: (String? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  List<String> currentOrgans =
+                                      organDonationStatusController.text
+                                          .split(',')
+                                          .where((organ) => organ.isNotEmpty)
+                                          .toList();
+
+                                  if (!currentOrgans.contains(newValue)) {
+                                    currentOrgans.add(newValue);
+                                  }
+
+                                  organDonationStatusController.text =
+                                      currentOrgans.join(',');
+                                });
+                              }
                             },
                           ),
                         ),
+                        if (organDonationStatusController.text.isNotEmpty) ...[
+                          10.heightBox,
+                          Container(
+                            constraints: const BoxConstraints(maxHeight: 100),
+                            child: SingleChildScrollView(
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: organDonationStatusController.text
+                                    .split(',')
+                                    .where((organ) => organ.isNotEmpty)
+                                    .map((organ) => Chip(
+                                          label: Text(organ),
+                                          onDeleted: () {
+                                            setState(() {
+                                              List<String> organs =
+                                                  organDonationStatusController
+                                                      .text
+                                                      .split(',')
+                                                      .where(
+                                                          (o) => o.isNotEmpty)
+                                                      .toList();
+                                              organs.remove(organ);
+                                              organDonationStatusController
+                                                  .text = organs.join(',');
+                                            });
+                                          },
+                                        ))
+                                    .toList(),
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                       20.heightBox,
                       CustomButton(
-                        buttonText: "Sign Up",
-                        onTap: () async {
-                          await signupCall();
-                        },
+                        buttonText: isLoading ? "Signing Up..." : "Sign Up",
+                        onTap: isLoading
+                            ? null
+                            : () async {
+                                await signupCall();
+                              },
                       ),
                       20.heightBox,
                       Row(

@@ -9,6 +9,7 @@ class Endpoints {
   static String bookAppointment = '${baseUrl}api/appoint/';
   static String getPrescriptions =
       '${baseUrl}api/prescription/getPrescriptions';
+  static String getAllDonors = '${baseUrl}api/donor/';
 
   // static String baseUrl = 'http://192.168.0.106:4000/';
   static String baseUrl = 'http://192.168.3.219:4000/';

@@ -12,9 +12,9 @@ const register = async (req, reply) => {
       // phoneNumber,
       bloodType,
       specialization,
-      organType,
+      selectedOrgan,
     } = req.body;
-    console.log(req.body);
+    console.log("SIngup Body", req.body);
     if (!name || !password || !email || !userRole) {
       return reply
         .status(400)
@@ -44,9 +44,9 @@ const register = async (req, reply) => {
       email: email,
       bloodType: bloodType,
       specialization: specialization,
-      selectedOrgan: organType,
+      selectedOrgan: selectedOrgan,
     });
-    console.log(newUser);
+    // console.log(newUser);
     return reply.send({
       success: true,
       message: "Created SuccessFully",

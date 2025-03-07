@@ -6,6 +6,7 @@ const connectDb = require("./config/db");
 const donorRouter = require("./Routes/donor");
 const patientRouter = require("./Routes/patient");
 const appointRouter = require("./Routes/appointment");
+const requestRouter = require("./Routes/donorRequest");
 const cors = require("cors");
 const { errorHandler } = require("./controller/authentication/error");
 
@@ -28,6 +29,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/doctor", doctorRouter);
 app.use("/api/donor", donorRouter);
 app.use("/api/appoint", appointRouter);
+app.use("/api/request", requestRouter);
 
 app.use(errorHandler);
 

@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema(
     profilePic: { type: String },
     bloodType: { type: String },
     specialization: { type: String },
-    selectedOrgan: { type: String },
+    selectedOrgan: { type: [String] },
     // phoneNumber: { type: String },
     userRole: {
       type: String,
