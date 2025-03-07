@@ -1,6 +1,4 @@
-
 const User = require("../../model/user");
-
 
 const patientList = async (req, reply) => {
   try {
@@ -28,7 +26,7 @@ const patientList = async (req, reply) => {
   }
 };
 
- const getpatientDetail = async (req, reply) => {
+const getpatientDetail = async (req, reply) => {
   try {
     const { id } = req.params;
     const patientDetail = await User.findById({
@@ -41,6 +39,7 @@ const patientList = async (req, reply) => {
         message: "patient Not found",
       });
     }
+    console.log("Patient Detail ");
     return reply.json({
       success: true,
       message: "patient Detail",
@@ -54,7 +53,7 @@ const patientList = async (req, reply) => {
   }
 };
 
- const deletePatient = async (req, reply) => {
+const deletePatient = async (req, reply) => {
   try {
     const { id } = req.params;
     const delPatient = await User.findByIdAndDelete({
@@ -79,19 +78,18 @@ const patientList = async (req, reply) => {
   }
 };
 
- const updatePatient = async (req, reply) => {
+const updatePatient = async (req, reply) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, emergencyNumber, phoneNumber } = req.body;
+    const { name, phone } = req.body;
+    console.log(req.body);
     const updatePatient = await User.findByIdAndUpdate(
       {
         _id: id,
       },
       {
-        firstName,
-        lastName,
-        emergencyNumber,
-        phoneNumber,
+        name,
+        phone: phone,
       },
       {
         new: true,
@@ -103,6 +101,7 @@ const patientList = async (req, reply) => {
       data: updatePatient,
     });
   } catch (error) {
+    console.log(error);
     return reply.json({
       message: "internal server error",
       data: error.message,
@@ -110,6 +109,9 @@ const patientList = async (req, reply) => {
   }
 };
 
-
-
-module.exports={updatePatient,patientList,getpatientDetail,deletePatient}
+module.exports = {
+  updatePatient,
+  patientList,
+  getpatientDetail,
+  deletePatient,
+};

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutterapp/consts/endPoints.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutterapp/views/patient/rescheduleAppointment.dart';
 
 class PatientAppointments extends StatefulWidget {
   const PatientAppointments({super.key});
@@ -64,6 +65,55 @@ class _PatientAppointmentsState extends State<PatientAppointments> {
       setState(() {
         isLoading = false;
       });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> updateAppointmentStatus(
+      String appointmentId, String status) async {
+    try {
+      print('Updating appointment status: $appointmentId to $status');
+
+      final response = await http.patch(
+        Uri.parse('${Endpoints.getAppointments}/$appointmentId'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'status': status,
+        }),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['success'] == true) {
+          // Refresh the appointments list
+          await fetchPatientAppointments();
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Appointment ${status} successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          throw responseData['message'] ??
+              'Failed to update appointment status';
+        }
+      } else {
+        throw 'Failed to update appointment status';
+      }
+    } catch (e) {
+      print('Error updating appointment status: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -142,6 +192,316 @@ class _PatientAppointmentsState extends State<PatientAppointments> {
               child: const Text('Yes'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showRescheduleDialog(Map<String, dynamic> appointment) async {
+    DateTime selectedDate = DateTime.now();
+    List<String> availableTimeSlots = [];
+    List<String> bookedTimeSlots = [];
+    String? selectedTimeSlot;
+    bool isLoading = true;
+    Map<String, dynamic> doctorDetails = {};
+
+    // Fetch doctor details first
+    try {
+      final response = await http.get(
+        Uri.parse(
+            '${Endpoints.getDoctorDetails}/${appointment['doctorId']['_id']}'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['success'] == true) {
+          doctorDetails = responseData['data'];
+        }
+      }
+    } catch (e) {
+      print('Error fetching doctor details: $e');
+    }
+
+    // Generate time slots based on doctor's schedule
+    List<String> generateTimeSlots(String startTime, String endTime) {
+      List<String> slots = [];
+      List<String> startParts = startTime.split(' ');
+      List<String> endParts = endTime.split(' ');
+
+      List<String> startTimeParts = startParts[0].split(':');
+      int startHour = int.parse(startTimeParts[0]);
+      int startMinute = int.parse(startTimeParts[1]);
+      bool startIsPM = startParts[1] == 'PM';
+
+      List<String> endTimeParts = endParts[0].split(':');
+      int endHour = int.parse(endTimeParts[0]);
+      int endMinute = int.parse(endTimeParts[1]);
+      bool endIsPM = endParts[1] == 'PM';
+
+      if (startIsPM && startHour != 12) startHour += 12;
+      if (!startIsPM && startHour == 12) startHour = 0;
+
+      if (endIsPM && endHour != 12) endHour += 12;
+      if (!endIsPM && endHour == 12) endHour = 0;
+
+      if (endHour < startHour) {
+        endHour += 24;
+      }
+
+      int currentHour = startHour;
+      while (currentHour < endHour) {
+        int displayHour = currentHour % 24;
+        String period = displayHour >= 12 ? 'PM' : 'AM';
+        if (displayHour > 12) displayHour -= 12;
+        if (displayHour == 0) displayHour = 12;
+
+        String slot = '${displayHour.toString().padLeft(2, '0')}:00 $period';
+        slots.add(slot);
+        currentHour++;
+      }
+
+      return slots;
+    }
+
+    // Get available time slots for selected day
+    void updateAvailableTimeSlots() {
+      if (doctorDetails['weeklySchedule'] == null) {
+        availableTimeSlots = [];
+        return;
+      }
+
+      String selectedDayName = [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday'
+      ][selectedDate.weekday - 1];
+
+      var schedule = (doctorDetails['weeklySchedule'] as List).firstWhere(
+        (schedule) => schedule['day'] == selectedDayName,
+        orElse: () => null,
+      );
+
+      if (schedule != null) {
+        availableTimeSlots = generateTimeSlots(
+          schedule['start'],
+          schedule['end'],
+        );
+      } else {
+        availableTimeSlots = [];
+      }
+    }
+
+    // Check existing appointments for selected date
+    Future<void> checkExistingAppointments() async {
+      try {
+        String formattedDate =
+            '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
+
+        final response = await http.get(
+          Uri.parse(
+              '${Endpoints.getAppointments}?doctor=${appointment['doctorId']['_id']}&date=$formattedDate'),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final responseData = json.decode(response.body);
+          if (responseData['success'] == true) {
+            List<dynamic> appointments = responseData['data'] ?? [];
+            bookedTimeSlots = appointments
+                .where((apt) =>
+                    apt['_id'] !=
+                    appointment['_id']) // Exclude current appointment
+                .map((apt) => apt['time'] as String)
+                .toList();
+          }
+        }
+      } catch (e) {
+        print('Error checking existing appointments: $e');
+      }
+    }
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Reschedule Appointment'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      title: const Text('Select Date'),
+                      subtitle: Text(
+                        '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                      ),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime.now(),
+                          lastDate:
+                              DateTime.now().add(const Duration(days: 30)),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            selectedDate = picked;
+                            updateAvailableTimeSlots();
+                          });
+                          await checkExistingAppointments();
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    if (availableTimeSlots.isNotEmpty) ...[
+                      const Text(
+                        'Available Time Slots',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          mainAxisExtent: 40,
+                        ),
+                        itemCount: availableTimeSlots.length,
+                        itemBuilder: (context, index) {
+                          final timeSlot = availableTimeSlots[index];
+                          final isSelected = timeSlot == selectedTimeSlot;
+                          final isBooked = bookedTimeSlots.contains(timeSlot);
+
+                          return Material(
+                            color: isBooked
+                                ? Colors.grey[400]
+                                : isSelected
+                                    ? Theme.of(context).primaryColor
+                                    : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                            child: InkWell(
+                              onTap: isBooked
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        selectedTimeSlot = timeSlot;
+                                      });
+                                    },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                alignment: Alignment.center,
+                                child: Text(
+                                  timeSlot,
+                                  style: TextStyle(
+                                    color: isBooked
+                                        ? Colors.white70
+                                        : isSelected
+                                            ? Colors.white
+                                            : Colors.black,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ] else
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Center(
+                          child: Text(
+                            'No available time slots for this day',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: selectedTimeSlot == null
+                      ? null
+                      : () async {
+                          try {
+                            final formattedDate =
+                                '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
+
+                            final response = await http.patch(
+                              Uri.parse(
+                                  '${Endpoints.getAppointments}/${appointment['_id']}'),
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: json.encode({
+                                'appointmentDate': formattedDate,
+                                'time': selectedTimeSlot,
+                              }),
+                            );
+
+                            if (response.statusCode == 200) {
+                              final responseData = json.decode(response.body);
+                              if (responseData['success'] == true) {
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                  await fetchPatientAppointments();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Appointment rescheduled successfully'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              } else {
+                                throw responseData['message'] ??
+                                    'Failed to reschedule appointment';
+                              }
+                            } else {
+                              throw 'Failed to reschedule appointment';
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  child: const Text('Reschedule'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -316,22 +676,92 @@ class _PatientAppointmentsState extends State<PatientAppointments> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                TextButton(
-                                  onPressed: () {
-                                    // Handle reschedule
-                                  },
-                                  child: const Text('Reschedule'),
-                                ),
-                                const SizedBox(width: 8),
-                                TextButton(
-                                  onPressed: () {
-                                    _showCancelConfirmation(appointment['_id']);
-                                  },
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.red,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: appointment['status'] == 'completed'
+                                        ? Colors.green.withOpacity(0.1)
+                                        : appointment['status'] == 'rejected'
+                                            ? Colors.red.withOpacity(0.1)
+                                            : Colors.orange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Text('Cancel'),
+                                  child: Text(
+                                    appointment['status']?.toUpperCase() ??
+                                        'PENDING',
+                                    style: TextStyle(
+                                      color: appointment['status'] ==
+                                              'completed'
+                                          ? Colors.green
+                                          : appointment['status'] == 'rejected'
+                                              ? Colors.red
+                                              : Colors.orange,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
+                                if (appointment['status'] == 'rejected')
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8),
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        _showCancelConfirmation(
+                                            appointment['_id']);
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12),
+                                      ),
+                                      child: const Text('Delete'),
+                                    ),
+                                  )
+                                else if (appointment['status'] != 'completed')
+                                  Row(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 8),
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _showCancelConfirmation(
+                                                appointment['_id']);
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12),
+                                          ),
+                                          child: const Text('Cancel'),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 8),
+                                        child: ElevatedButton(
+                                          onPressed: () async {
+                                            final result = await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    RescheduleAppointmentScreen(
+                                                  appointment: appointment,
+                                                ),
+                                              ),
+                                            );
+                                            if (result == true) {
+                                              await fetchPatientAppointments();
+                                            }
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blue,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12),
+                                          ),
+                                          child: const Text('Reschedule'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                               ],
                             ),
                           ],
