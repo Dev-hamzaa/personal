@@ -7,6 +7,8 @@ import 'package:flutterapp/views/patient/patientAppointment.dart';
 import 'package:flutterapp/views/donor/donorView.dart';
 import 'package:flutterapp/views/profile/donorProfileView.dart';
 import 'package:flutterapp/views/doctor/doctorHomeView.dart';
+import 'package:flutterapp/views/patient/donorListView.dart';
+import 'package:flutterapp/views/patient/patientRequests.dart';
 
 class Navigationbar extends StatefulWidget {
   const Navigationbar({super.key});
@@ -48,7 +50,18 @@ class _NavigationbarState extends State<Navigationbar> {
               ? const DonorProfileView()
               : const ProfileView();
     }
-    return const PatientAppointments();
+    if (index == 2) {
+      if (userRole == 'patient') {
+        return const PatientAppointments();
+      }
+    }
+    if (index == 3) {
+      return const DonorListView();
+    }
+    if (index == 4) {
+      return const PatientRequests();
+    }
+    return const PatientView();
   }
 
   @override
@@ -64,6 +77,9 @@ class _NavigationbarState extends State<Navigationbar> {
             _currentIndex = index;
           });
         },
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
         items: [
           const BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -73,12 +89,20 @@ class _NavigationbarState extends State<Navigationbar> {
             icon: Icon(Icons.person),
             label: 'Profile',
           ),
-          if (userRole != 'doctor')
-            BottomNavigationBarItem(
-              icon: Icon(
-                  userRole == 'donor' ? Icons.settings : Icons.calendar_today),
-              label: userRole == 'donor' ? 'Settings' : 'Appointments',
+          if (userRole == 'patient') ...[
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today),
+              label: 'Appointments',
             ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.volunteer_activism),
+              label: 'Donors',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.medical_services),
+              label: 'Requests',
+            ),
+          ],
         ],
       ),
     );

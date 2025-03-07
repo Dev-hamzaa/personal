@@ -52,19 +52,11 @@ class _PatientViewState extends State<PatientView> {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        print('\n=== User Details Response ===');
-        print('Success: ${responseData['success']}');
-        print('Message: ${responseData['message']}');
-        print('Data: ${json.encode(responseData['data'])}');
-        print('===========================\n');
-
         if (responseData['success'] == true && responseData['data'] != null) {
           setState(() {
             userDetails = responseData['data'];
             isLoadingUser = false;
           });
-        } else {
-          throw responseData['message'] ?? 'Failed to fetch user details';
         }
       } else {
         throw 'Failed to fetch user details';
@@ -145,46 +137,6 @@ class _PatientViewState extends State<PatientView> {
         child: Column(
           children: [
             const Header(),
-            if (isLoadingUser)
-              const Center(child: CircularProgressIndicator())
-            else if (userDetails != null)
-              Container(
-                padding: const EdgeInsets.all(16),
-                color: Colors.blue.withOpacity(0.1),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 25,
-                      backgroundColor: Colors.blue.withOpacity(0.2),
-                      child: const Icon(
-                        Icons.person,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Welcome, ${userDetails!['name'] ?? 'User'}",
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            userDetails!['email'] ?? 'Email not available',
-                            style: const TextStyle(
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

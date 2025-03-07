@@ -12,7 +12,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutterapp/consts/endPoints.dart';
 
-
 class LoginView extends StatelessWidget {
   LoginView({super.key});
 
@@ -59,14 +58,15 @@ class LoginView extends StatelessWidget {
         // Parse response
         final responseData = json.decode(response.body);
         final userData = responseData['data']; // Get the nested data object
-        
+
         // Store user data
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('userId', userData['_id'] ?? '');
         await prefs.setString('userName', userData['name'] ?? '');
         await prefs.setString('userRole', userData['userRole'] ?? '');
-        
-        print('Stored user data: ID=${userData['_id']}, Name=${userData['name']}, Role=${userData['userRole']}');
+
+        print(
+            'Stored user data: ID=${userData['_id']}, Name=${userData['name']}, Role=${userData['userRole']}');
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
@@ -169,18 +169,11 @@ class LoginView extends StatelessWidget {
                           textController: passwordController,
                         ),
                         20.heightBox,
-
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: AppStrings.forgotPassword.text.make(),
-                        ),
-                        20.heightBox,
                         CustomButton(
                           buttonText: AppStrings.login,
                           onTap: () => loginCall(context),
                         ),
                         20.heightBox,
-
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [

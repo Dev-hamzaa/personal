@@ -18,14 +18,15 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController specializationController = TextEditingController();
+  final TextEditingController specializationController =
+      TextEditingController();
   final TextEditingController startTimeController = TextEditingController();
   final TextEditingController endTimeController = TextEditingController();
   bool isEditing = false;
   bool isLoading = true;
 
   // Schedule data structure
-  List<Map<String, dynamic>>  schedules = [];
+  List<Map<String, dynamic>> schedules = [];
   final List<String> weekDays = [
     'Monday',
     'Tuesday',
@@ -35,7 +36,7 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
     'Saturday',
     'Sunday'
   ];
-  
+
   @override
   void initState() {
     super.initState();
@@ -64,7 +65,7 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        
+
         if (responseData['success'] == true && responseData['data'] != null) {
           final doctorData = responseData['data'];
           setState(() {
@@ -72,29 +73,28 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
             emailController.text = doctorData['email'] ?? '';
             phoneController.text = doctorData['phone'] ?? '';
             specializationController.text = doctorData['specialization'] ?? '';
-            
+
             // Handle schedules if they exist in the response
-            if (doctorData['weeklySchedule'] != null && 
-                doctorData['weeklySchedule'] is List && 
+            if (doctorData['weeklySchedule'] != null &&
+                doctorData['weeklySchedule'] is List &&
                 doctorData['weeklySchedule'].isNotEmpty) {
-              
               schedules = List<Map<String, dynamic>>.from(
-                doctorData['weeklySchedule'].map((schedule) => {
-                  'day': schedule['day'],
-                  'start': schedule['start'],
-                  'end': schedule['end'],
-                })
-              );
-              
+                  doctorData['weeklySchedule'].map((schedule) => {
+                        'day': schedule['day'],
+                        'start': schedule['start'],
+                        'end': schedule['end'],
+                      }));
             } else {
               // Add default schedule if none exists
-              schedules = [{
-                'day': 'Monday',
-                'start': '09:00',
-                'end': '17:00',
-              }];
+              schedules = [
+                {
+                  'day': 'Monday',
+                  'start': '09:00',
+                  'end': '17:00',
+                }
+              ];
             }
-            
+
             isLoading = false;
           });
         }
@@ -135,7 +135,8 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
           String period = hour >= 12 ? 'PM' : 'AM';
           if (hour > 12) hour -= 12;
           if (hour == 0) hour = 12;
-          startTime = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
+          startTime =
+              '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
         }
 
         // Ensure end time is in AM/PM format
@@ -147,7 +148,8 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
           String period = hour >= 12 ? 'PM' : 'AM';
           if (hour > 12) hour -= 12;
           if (hour == 0) hour = 12;
-          endTime = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
+          endTime =
+              '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
         }
 
         return {
@@ -204,7 +206,7 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
     try {
       // Remove any extra spaces
       time24 = time24.trim();
-      
+
       // Parse the time
       List<String> parts = time24.split(':');
       int hour = int.parse(parts[0]);
@@ -245,7 +247,8 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
     });
   }
 
-  Future<void> _selectTime(BuildContext context, int index, bool isStartTime) async {
+  Future<void> _selectTime(
+      BuildContext context, int index, bool isStartTime) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
@@ -259,9 +262,9 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
 
     if (picked != null) {
       setState(() {
-        final String formattedTime = 
+        final String formattedTime =
             '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-        
+
         if (isStartTime) {
           schedules[index]['start'] = formattedTime;
         } else {
@@ -278,97 +281,97 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
     return Scaffold(
       body: SafeArea(
         child: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Header(),
-                  const SizedBox(height: 20),
-                  
-                  // Profile Picture and Edit Button
-                  Center(
-                    child: Column(
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Colors.grey[300],
-                          child: const Icon(
-                            Icons.person,
-                            size: 50,
-                            color: Colors.grey,
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Header(),
+                    const SizedBox(height: 20),
+
+                    // Profile Picture and Edit Button
+                    Center(
+                      child: Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Colors.grey[300],
+                            child: const Icon(
+                              Icons.person,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              isEditing = !isEditing;
-                            });
-                          },
-                          icon: Icon(isEditing ? Icons.check : Icons.edit),
-                          label: Text(isEditing ? 'Save' : 'Edit Profile'),
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          TextButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                isEditing = !isEditing;
+                              });
+                            },
+                            icon: Icon(isEditing ? Icons.check : Icons.edit),
+                            label: Text(isEditing ? 'Save' : 'Edit Profile'),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  // Basic Info Fields
-                  CustomTextField(
-                    hint: "Full Name",
-                    prefixIcon: Icons.person,
-                    textController: nameController,
-                    readOnly: !isEditing,
-                  ),
-                  const SizedBox(height: 16),
+                    // Basic Info Fields
+                    CustomTextField(
+                      hint: "Full Name",
+                      prefixIcon: Icons.person,
+                      textController: nameController,
+                      readOnly: !isEditing,
+                    ),
+                    const SizedBox(height: 16),
 
-                  CustomTextField(
-                    hint: "Email",
-                    prefixIcon: Icons.email,
-                    textController: emailController,
-                    readOnly: !isEditing,
-                  ),
-                  const SizedBox(height: 16),
+                    CustomTextField(
+                      hint: "Email",
+                      prefixIcon: Icons.email,
+                      textController: emailController,
+                      readOnly: !isEditing,
+                    ),
+                    const SizedBox(height: 16),
 
-                  CustomTextField(
-                    hint: "Phone Number",
-                    prefixIcon: Icons.phone,
-                    textController: phoneController,
-                    readOnly: !isEditing,
-                  ),
-                  const SizedBox(height: 16),
+                    CustomTextField(
+                      hint: "Phone Number",
+                      prefixIcon: Icons.phone,
+                      textController: phoneController,
+                      readOnly: !isEditing,
+                    ),
+                    const SizedBox(height: 16),
 
-                  CustomTextField(
-                    hint: "Specialization",
-                    prefixIcon: Icons.work,
-                    textController: specializationController,
-                    readOnly: !isEditing,
-                  ),
-                  const SizedBox(height: 24),
+                    CustomTextField(
+                      hint: "Specialization",
+                      prefixIcon: Icons.work,
+                      textController: specializationController,
+                      readOnly: !isEditing,
+                    ),
+                    const SizedBox(height: 24),
 
-                  // Schedule List
-                  Container(
-                    width: double.infinity,
-                    child: _buildScheduleList(),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Update Profile Button
-                  if (isEditing)
-                    CustomButton(
-                      buttonText: "Update Profile",
-                      onTap: () async {
-                        await updateDoctorProfile();
-                      },
+                    // Schedule List
+                    Container(
+                      width: double.infinity,
+                      child: _buildScheduleList(),
                     ),
 
-                  const SizedBox(height: 20),
-                ],
+                    const SizedBox(height: 20),
+
+                    // Update Profile Button
+                    if (isEditing)
+                      CustomButton(
+                        buttonText: "Update Profile",
+                        onTap: () async {
+                          await updateDoctorProfile();
+                        },
+                      ),
+
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
-            ),
       ),
     );
   }
@@ -427,7 +430,7 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
                                 child: Text(day),
                               );
                             }).toList(),
-                            onChanged: isEditing 
+                            onChanged: isEditing
                                 ? (String? newValue) {
                                     if (newValue != null) {
                                       setState(() {
@@ -460,7 +463,7 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
                               text: schedule['start'],
                             ),
                             readOnly: true,
-                            onTap: isEditing 
+                            onTap: isEditing
                                 ? () => _selectTime(context, idx, true)
                                 : null,
                           ),
@@ -474,7 +477,7 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
                               text: schedule['end'],
                             ),
                             readOnly: true,
-                            onTap: isEditing 
+                            onTap: isEditing
                                 ? () => _selectTime(context, idx, false)
                                 : null,
                           ),

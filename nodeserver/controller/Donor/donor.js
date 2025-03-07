@@ -1,7 +1,6 @@
 const User = require("../../model/user");
 
-
-const donorList = async (req, reply) => {
+const donorList = async (req, res, next) => {
   try {
     const { name } = req.query;
     let query = { userRole: "donor" };
@@ -14,20 +13,20 @@ const donorList = async (req, reply) => {
       };
     }
     const list = await User.find(query);
-    return reply.json({
+    return res.json({
       success: true,
       message: "Donors List",
       data: list,
     });
   } catch (error) {
-    return reply.json({
+    return res.json({
       message: "internal server Error",
       data: error.message,
     });
   }
 };
 
- const getDonorDetail = async (req, reply) => {
+const getDonorDetail = async (req, reply) => {
   try {
     const { id } = req.params;
     const patientDetail = await User.findById({
@@ -53,7 +52,7 @@ const donorList = async (req, reply) => {
   }
 };
 
- const deleteDonor = async (req, reply) => {
+const deleteDonor = async (req, reply) => {
   try {
     const { id } = req.params;
     const delPatient = await User.findByIdAndDelete({
@@ -78,19 +77,19 @@ const donorList = async (req, reply) => {
   }
 };
 
- const updateDonor = async (req, reply) => {
+const updateDonor = async (req, reply) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, emergencyNumber, phoneNumber } = req.body;
+    const { name, phone, selectedOrgan, bloodType } = req.body;
     const updatePatient = await User.findByIdAndUpdate(
       {
         _id: id,
       },
       {
-        firstName,
-        lastName,
-        emergencyNumber,
-        phoneNumber,
+        name,
+        phone,
+        bloodType,
+        selectedOrgan,
       },
       {
         new: true,
@@ -108,4 +107,4 @@ const donorList = async (req, reply) => {
     });
   }
 };
-module.exports={donorList,getDonorDetail,deleteDonor,updateDonor}
+module.exports = { donorList, getDonorDetail, deleteDonor, updateDonor };
