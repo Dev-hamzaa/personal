@@ -6,6 +6,7 @@ import 'package:flutterapp/components/header.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutterapp/consts/endPoints.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PatientView extends StatefulWidget {
   const PatientView({super.key});
@@ -17,12 +18,70 @@ class PatientView extends StatefulWidget {
 class _PatientViewState extends State<PatientView> {
   List<Map<String, dynamic>> doctors = [];
   bool isLoading = true;
+  bool isLoadingUser = true;
   String selectedSpecialty = 'All';
+  Map<String, dynamic>? userDetails;
 
   @override
   void initState() {
     super.initState();
+    fetchUserDetails();
     fetchDoctors();
+  }
+
+  Future<void> fetchUserDetails() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('userId');
+
+      if (userId == null) {
+        throw 'User ID not found';
+      }
+
+      print('Fetching user details for ID: $userId');
+
+      final response = await http.get(
+        Uri.parse('${Endpoints.getPatientDetails}/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        print('\n=== User Details Response ===');
+        print('Success: ${responseData['success']}');
+        print('Message: ${responseData['message']}');
+        print('Data: ${json.encode(responseData['data'])}');
+        print('===========================\n');
+
+        if (responseData['success'] == true && responseData['data'] != null) {
+          setState(() {
+            userDetails = responseData['data'];
+            isLoadingUser = false;
+          });
+        } else {
+          throw responseData['message'] ?? 'Failed to fetch user details';
+        }
+      } else {
+        throw 'Failed to fetch user details';
+      }
+    } catch (e) {
+      print('Error fetching user details: $e');
+      if (!mounted) return;
+      setState(() {
+        isLoadingUser = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> fetchDoctors() async {
@@ -86,6 +145,46 @@ class _PatientViewState extends State<PatientView> {
         child: Column(
           children: [
             const Header(),
+            if (isLoadingUser)
+              const Center(child: CircularProgressIndicator())
+            else if (userDetails != null)
+              Container(
+                padding: const EdgeInsets.all(16),
+                color: Colors.blue.withOpacity(0.1),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 25,
+                      backgroundColor: Colors.blue.withOpacity(0.2),
+                      child: const Icon(
+                        Icons.person,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Welcome, ${userDetails!['name'] ?? 'User'}",
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            userDetails!['email'] ?? 'Email not available',
+                            style: const TextStyle(
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -128,6 +128,15 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
     }
   }
 
+  String _formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
   Future<void> updateAppointmentStatus(
       String appointmentId, String status) async {
     try {
@@ -239,87 +248,125 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
                           child: Column(
                             children: [
                               ListTile(
-                                title: Text(appointment['patientId']['name'] ??
-                                    'Unknown Patient'),
+                                title: Text(
+                                  'Patient Name: ${appointment['patientId']?['name'] ?? 'Unknown'}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const SizedBox(height: 4),
-                                    Text('Time: ${appointment['time']}'),
-                                    Text(
-                                        'Date: ${appointment['appointmentDate']}'),
-                                    Text(
-                                        'Reason: ${appointment['reason'] ?? 'Not specified'}'),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.calendar_today,
+                                            size: 16, color: Colors.grey),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          _formatDate(
+                                              appointment['appointmentDate'] ??
+                                                  ''),
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        const Icon(Icons.access_time,
+                                            size: 16, color: Colors.grey),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          appointment['time'] ??
+                                              'Time not specified',
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: appointment['status'] ==
+                                                    'completed'
+                                                ? Colors.green.withOpacity(0.1)
+                                                : appointment['status'] ==
+                                                        'rejected'
+                                                    ? Colors.red
+                                                        .withOpacity(0.1)
+                                                    : Colors.orange
+                                                        .withOpacity(0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            appointment['status']
+                                                    ?.toUpperCase() ??
+                                                'PENDING',
+                                            style: TextStyle(
+                                              color: appointment['status'] ==
+                                                      'completed'
+                                                  ? Colors.green
+                                                  : appointment['status'] ==
+                                                          'rejected'
+                                                      ? Colors.red
+                                                      : Colors.orange,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        if (appointment['status'] == 'pending')
+                                          Row(
+                                            children: [
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    left: 8),
+                                                child: ElevatedButton(
+                                                  onPressed: () {
+                                                    updateAppointmentStatus(
+                                                        appointment['_id'],
+                                                        'completed');
+                                                  },
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        Colors.blue,
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 12),
+                                                  ),
+                                                  child: const Text(
+                                                      'Mark as Complete'),
+                                                ),
+                                              ),
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    left: 8),
+                                                child: ElevatedButton(
+                                                  onPressed: () {
+                                                    updateAppointmentStatus(
+                                                        appointment['_id'],
+                                                        'rejected');
+                                                  },
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                    backgroundColor: Colors.red,
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 12),
+                                                  ),
+                                                  child: const Text('Cancel'),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                      ],
+                                    ),
                                   ],
                                 ),
                                 isThreeLine: true,
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    if (appointment['status'] == 'pending') ...[
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          updateAppointmentStatus(
-                                              appointment['_id'], 'accepted');
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.green,
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12),
-                                        ),
-                                        child: const Text('Accept'),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          updateAppointmentStatus(
-                                              appointment['_id'], 'declined');
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.red,
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12),
-                                        ),
-                                        child: const Text('Decline'),
-                                      ),
-                                    ] else if (appointment['status'] ==
-                                        'accepted') ...[
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          updateAppointmentStatus(
-                                              appointment['_id'], 'completed');
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blue,
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12),
-                                        ),
-                                        child: const Text('Mark as Completed'),
-                                      ),
-                                    ] else if (appointment['status'] ==
-                                        'completed') ...[
-                                      const Text(
-                                        'Completed',
-                                        style: TextStyle(
-                                          color: Colors.green,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ] else if (appointment['status'] ==
-                                        'declined') ...[
-                                      const Text(
-                                        'Declined',
-                                        style: TextStyle(
-                                          color: Colors.red,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
                               ),
                             ],
                           ),

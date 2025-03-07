@@ -4,6 +4,7 @@ class Endpoints {
   static String getAllDoctors = '${baseUrl}api/doctor/';
   static String getDoctorDetails = '${baseUrl}api/doctor';
   static String getAllPatients = '${baseUrl}api/patient/';
+  static String getPatientDetails = '${baseUrl}api/patient';
   static String getAppointments = '${baseUrl}api/appoint/';
   static String bookAppointment = '${baseUrl}api/appoint/';
   static String getPrescriptions =
