@@ -1,14 +1,14 @@
-const mongoose =require("mongoose");
+const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema(
   {
     name: { type: String },
     fcmApp: { type: String },
     gender: { type: String, enum: ["male", "female"] },
-    emergencyNumber: { type: String },
+    phone: { type: String },
     profilePic: { type: String },
     bloodType: { type: String },
     specialization: { type: String },
-    selectedOrgan:{type:String},
+    selectedOrgan: { type: String },
     // phoneNumber: { type: String },
     userRole: {
       type: String,
@@ -32,14 +32,14 @@ const userSchema = new mongoose.Schema(
     },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     modifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    weeklySchedule:[
+    weeklySchedule: [
       {
-        _id:false,
-        day:String,
-        start:mongoose.Schema.Types.Date,
-        end:mongoose.Schema.Types.Date,
-      }
-    ]
+        _id: false,
+        day: String,
+        start: mongoose.Schema.Types.Date,
+        end: mongoose.Schema.Types.Date,
+      },
+    ],
   },
   {
     timestamps: true,
@@ -47,4 +47,4 @@ const userSchema = new mongoose.Schema(
 );
 
 const User = mongoose.model("User", userSchema);
-module.exports=User
+module.exports = User;

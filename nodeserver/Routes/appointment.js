@@ -15,7 +15,7 @@ appointRouter.route("/").get(getAppointments);
 appointRouter
   .route("/:id")
   .get(getAppointmentDetail)
-  .put(updateAppoitment)
+  .patch(updateAppoitment)
   .delete(delAppointment);
 
 module.exports = appointRouter;
