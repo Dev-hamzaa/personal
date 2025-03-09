@@ -22,6 +22,9 @@ class _PatientViewState extends State<PatientView> {
   String selectedSpecialty = 'All';
   Map<String, dynamic>? userDetails;
 
+    final TextEditingController nameController = TextEditingController();
+
+
   @override
   void initState() {
     super.initState();
@@ -116,16 +119,30 @@ class _PatientViewState extends State<PatientView> {
     }
   }
 
-  List<Map<String, dynamic>> getFilteredDoctors() {
-    if (selectedSpecialty == 'All') {
-      return doctors;
-    }
-    return doctors
-        .where((doctor) =>
-            doctor['specialization']?.toLowerCase() ==
-            selectedSpecialty.toLowerCase())
-        .toList();
-  }
+  // List<Map<String, dynamic>> getFilteredDoctors() {
+  //   if (selectedSpecialty == 'All') {
+  //     return doctors;
+  //   }
+  //   return doctors
+  //       .where((doctor) =>
+  //           doctor['name']?.toLowerCase() ==
+  //           selectedSpecialty.toLowerCase())
+  //       .toList();
+  // }
+List<Map<String, dynamic>> getFilteredDoctors() {
+  return doctors.where((doctor) {
+    // Check if the doctor's name contains the search query (case-insensitive)
+    final nameMatch = doctor['name']
+        ?.toLowerCase()
+        .contains(nameController.text.toLowerCase()) ?? false;
+    
+    // Check if the doctor's specialization matches the selected category
+    // final specialtyMatch = selectedSpecialty == 'All' ||
+    //     doctor['specialization']?.toLowerCase() == selectedSpecialty.toLowerCase();
+    
+    return nameMatch;
+  }).toList();
+}
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +164,10 @@ class _PatientViewState extends State<PatientView> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: TextField(
+                      controller: nameController,
+                       onChanged: (value) {
+      setState(() {}); // Just refresh the UI, no need to set controller.text manually
+    },
                       decoration: InputDecoration(
                         hintText: "Search doctors...",
                         prefixIcon: const Icon(Icons.search),
