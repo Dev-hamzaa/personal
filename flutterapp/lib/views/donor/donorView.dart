@@ -89,7 +89,7 @@ class _DonorViewState extends State<DonorView>
 
       final response = await http.get(
         Uri.parse(
-            '${Endpoints.baseUrl}api/request/?donor=$userId&status=pending${isBloodRequest ? '&blood=true' : ''}'),
+            '${Endpoints.baseUrl}api/request/?donor=$userId&status=pending${isBloodRequest ? '&blood=true&donorblood=true' : ''}'),
         headers: {
           'Content-Type': 'application/json',
         },

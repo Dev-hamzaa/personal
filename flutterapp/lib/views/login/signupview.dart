@@ -60,6 +60,11 @@ class _SignupViewState extends State<SignupView> {
         throw 'Passwords do not match';
       }
 
+      // Validate password length
+      if (passwordController.text.length < 8) {
+        throw 'Password must be at least 8 characters long';
+      }
+
       // Prepare base user data
       Map<String, dynamic> userData = {
         'name': nameController.text,
@@ -242,6 +247,7 @@ class _SignupViewState extends State<SignupView> {
                         prefixIcon: Icons.lock,
                         isPassword: true,
                         textController: passwordController,
+                        // hint: 'Password must be at least 8 characters long',
                       ),
                       10.heightBox,
                       CustomTextField(

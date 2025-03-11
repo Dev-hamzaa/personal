@@ -22,7 +22,7 @@ app.use((req, res, next) => {
 });
 // Serve static files from the uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "./uploads")));
-const port = 4000;
+const port = 8000;
 
 connectDb().then(() => {
   console.log("Mongodb Connected");
