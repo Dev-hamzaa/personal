@@ -148,6 +148,73 @@ class _PatientRequestsState extends State<PatientRequests> {
                                       ],
                                     ),
                                     const SizedBox(height: 16),
+                                    const Divider(),
+                                    const SizedBox(height: 16),
+                                    // Donor Information
+                                    if (request['donorId'] != null)
+                                      Row(
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 30,
+                                            backgroundColor: Colors.grey[300],
+                                            backgroundImage: request['donorId']
+                                                            ['profilePic'] !=
+                                                        null &&
+                                                    request['donorId']
+                                                            ['profilePic']
+                                                        .toString()
+                                                        .isNotEmpty
+                                                ? NetworkImage(
+                                                    '${Endpoints.baseUrl}uploads/${request['donorId']['profilePic'].toString().split('\\').last}',
+                                                    headers: {
+                                                      'Accept': '*/*',
+                                                    },
+                                                  )
+                                                : null,
+                                            child: (request['donorId']
+                                                            ['profilePic'] ==
+                                                        null ||
+                                                    request['donorId']
+                                                            ['profilePic']
+                                                        .toString()
+                                                        .isEmpty)
+                                                ? const Icon(
+                                                    Icons.person,
+                                                    size: 30,
+                                                    color: Colors.grey,
+                                                  )
+                                                : null,
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  request['donorId']['name'] ??
+                                                      'Unknown Donor',
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  request['donorId']['email'] ??
+                                                      'N/A',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    const SizedBox(height: 16),
+                                    // Request Details
                                     if (request['requestedOrgan'] != null &&
                                         request['requestedOrgan']
                                             .toString()

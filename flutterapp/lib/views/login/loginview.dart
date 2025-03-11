@@ -12,16 +12,28 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutterapp/consts/endPoints.dart';
 
-class LoginView extends StatelessWidget {
-  LoginView({super.key});
+class LoginView extends StatefulWidget {
+  const LoginView({super.key});
 
+  @override
+  State<LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<LoginView> {
   // Add controllers for email and password
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool isLoading = false;
 
   // Add login function
   Future<void> loginCall(BuildContext context) async {
+    if (isLoading) return; // Prevent multiple calls
+
     try {
+      setState(() {
+        isLoading = true;
+      });
+
       // Validate fields
       if (emailController.text.isEmpty || passwordController.text.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -39,8 +51,7 @@ class LoginView extends StatelessWidget {
         'password': passwordController.text,
       };
 
-      print('Making login API call');
-      print('Request body: ${json.encode(loginData)}');
+      print('Attempting login with email: ${emailController.text}');
 
       // Make API call
       final response = await http.post(
@@ -51,13 +62,24 @@ class LoginView extends StatelessWidget {
         body: json.encode(loginData),
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      print('Login response status: ${response.statusCode}');
+      print('Login response body: ${response.body}');
 
       if (response.statusCode == 200) {
         // Parse response
         final responseData = json.decode(response.body);
+
+        if (responseData['success'] != true) {
+          throw responseData['message'] ?? 'Login failed';
+        }
+
         final userData = responseData['data']; // Get the nested data object
+
+        if (userData == null) {
+          throw 'Invalid response data';
+        }
+
+        print('User data received: $userData');
 
         // Store user data
         final prefs = await SharedPreferences.getInstance();
@@ -65,8 +87,11 @@ class LoginView extends StatelessWidget {
         await prefs.setString('userName', userData['name'] ?? '');
         await prefs.setString('userRole', userData['userRole'] ?? '');
 
-        print(
-            'Stored user data: ID=${userData['_id']}, Name=${userData['name']}, Role=${userData['userRole']}');
+        // Verify stored data
+        final storedRole = prefs.getString('userRole');
+        print('Stored user role: $storedRole');
+
+        if (!mounted) return;
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
@@ -76,26 +101,50 @@ class LoginView extends StatelessWidget {
           ),
         );
 
-        // Navigate to main layout
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const Navigationbar(),
-          ),
-        );
+        // Wait for the snackbar to be visible
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        if (!mounted) return;
+
+        print('Navigating to NavigationBar...');
+
+        // Use GetX navigation with error handling
+        try {
+          await Get.offAll(() => const Navigationbar());
+          print('Navigation completed successfully');
+        } catch (navError) {
+          print('Navigation error: $navError');
+          // Fallback to regular navigation if GetX fails
+          if (mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (context) => const Navigationbar(),
+              ),
+              (route) => false,
+            );
+          }
+        }
       } else {
         // Handle error
         final errorData = json.decode(response.body);
-        throw errorData['message'] ?? 'Login failed';
+        throw errorData['message'] ?? 'Login failed: ${response.statusCode}';
       }
     } catch (e) {
       print('Login error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -169,10 +218,12 @@ class LoginView extends StatelessWidget {
                           textController: passwordController,
                         ),
                         20.heightBox,
-                        CustomButton(
-                          buttonText: AppStrings.login,
-                          onTap: () => loginCall(context),
-                        ),
+                        isLoading
+                            ? const CircularProgressIndicator()
+                            : CustomButton(
+                                buttonText: AppStrings.login,
+                                onTap: () => loginCall(context),
+                              ),
                         20.heightBox,
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -202,5 +253,12 @@ class LoginView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 }

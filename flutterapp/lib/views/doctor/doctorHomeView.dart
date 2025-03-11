@@ -33,34 +33,24 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
         throw 'Doctor ID not found';
       }
 
-      print('Fetching doctor info for ID: $doctorId');
-
       final response = await http.get(
-        Uri.parse('${Endpoints.getDoctorDetails}/$doctorId'),
+        Uri.parse('${Endpoints.baseUrl}api/doctor/$doctorId'),
         headers: {
           'Content-Type': 'application/json',
         },
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        print('\n=== Doctor Info Response ===');
-        print('Success: ${responseData['success']}');
-        print('Message: ${responseData['message']}');
-        print('Data: ${json.encode(responseData['data'])}');
-        print('=====================================\n');
-
-        if (responseData['success'] == true) {
+        if (responseData['success'] == true && responseData['data'] != null) {
           setState(() {
             doctorInfo = responseData['data'];
           });
         }
+      } else {
+        throw 'Failed to fetch doctor info';
       }
     } catch (e) {
-      print('Error fetching doctor info: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -80,14 +70,6 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
         throw 'Doctor ID not found';
       }
 
-      // Get today's date in YYYY-MM-DD format
-      final today = DateTime.now();
-      final formattedDate =
-          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-
-      print(
-          'Fetching appointments for doctor: $doctorId on date: $formattedDate');
-
       final response = await http.get(
         Uri.parse('${Endpoints.getAppointments}?doctor=$doctorId&'),
         headers: {
@@ -95,17 +77,8 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
         },
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        print('\n=== Doctor Appointments Response ===');
-        print('Success: ${responseData['success']}');
-        print('Message: ${responseData['message']}');
-        print('Data: ${json.encode(responseData['data'])}');
-        print('=====================================\n');
-
         if (responseData['success'] == true) {
           setState(() {
             appointments = responseData['data'] ?? [];
@@ -114,7 +87,6 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
         }
       }
     } catch (e) {
-      print('Error fetching doctor appointments: $e');
       setState(() {
         isLoading = false;
       });
@@ -140,8 +112,6 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
   Future<void> updateAppointmentStatus(
       String appointmentId, String status) async {
     try {
-      print('Updating appointment status: $appointmentId to $status');
-
       final response = await http.patch(
         Uri.parse('${Endpoints.getAppointments}/$appointmentId'),
         headers: {
@@ -152,13 +122,9 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
         }),
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         if (responseData['success'] == true) {
-          // Refresh the appointments list
           await fetchDoctorAppointments();
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -175,7 +141,6 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
         throw 'Failed to update appointment status';
       }
     } catch (e) {
-      print('Error updating appointment status: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -207,11 +172,21 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
                   CircleAvatar(
                     radius: 40,
                     backgroundColor: Colors.grey[300],
-                    child: const Icon(
-                      Icons.person,
-                      size: 40,
-                      color: Colors.grey,
-                    ),
+                    backgroundImage: doctorInfo?['profilePic'] != null
+                        ? NetworkImage(
+                            '${Endpoints.baseUrl}uploads/${doctorInfo!['profilePic'].toString().split('\\').last}',
+                            headers: {
+                              'Accept': '*/*',
+                            },
+                          )
+                        : null,
+                    child: doctorInfo?['profilePic'] == null
+                        ? const Icon(
+                            Icons.person,
+                            size: 40,
+                            color: Colors.grey,
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 20),
                   Expanded(
@@ -245,130 +220,194 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
                         final appointment = appointments[index];
                         return Card(
                           margin: const EdgeInsets.only(bottom: 16),
-                          child: Column(
-                            children: [
-                              ListTile(
-                                title: Text(
-                                  'Patient Name: ${appointment['patientId']?['name'] ?? 'Unknown'}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                subtitle: Column(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.calendar_today,
-                                            size: 16, color: Colors.grey),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          _formatDate(
-                                              appointment['appointmentDate'] ??
-                                                  ''),
-                                          style: const TextStyle(fontSize: 14),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        const Icon(Icons.access_time,
-                                            size: 16, color: Colors.grey),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          appointment['time'] ??
-                                              'Time not specified',
-                                          style: const TextStyle(fontSize: 14),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: appointment['status'] ==
-                                                    'completed'
-                                                ? Colors.green.withOpacity(0.1)
-                                                : appointment['status'] ==
-                                                        'rejected'
-                                                    ? Colors.red
-                                                        .withOpacity(0.1)
-                                                    : Colors.orange
-                                                        .withOpacity(0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                            appointment['status']
-                                                    ?.toUpperCase() ??
-                                                'PENDING',
-                                            style: TextStyle(
-                                              color: appointment['status'] ==
-                                                      'completed'
-                                                  ? Colors.green
-                                                  : appointment['status'] ==
-                                                          'rejected'
-                                                      ? Colors.red
-                                                      : Colors.orange,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        if (appointment['status'] == 'pending')
-                                          Row(
-                                            children: [
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    left: 8),
-                                                child: ElevatedButton(
-                                                  onPressed: () {
-                                                    updateAppointmentStatus(
-                                                        appointment['_id'],
-                                                        'completed');
+                                    CircleAvatar(
+                                      radius: 30,
+                                      backgroundColor: Colors.grey[300],
+                                      backgroundImage:
+                                          appointment['patientId'] != null &&
+                                                  appointment['patientId']
+                                                          ['profilePic'] !=
+                                                      null &&
+                                                  appointment['patientId']
+                                                          ['profilePic']
+                                                      .toString()
+                                                      .isNotEmpty
+                                              ? NetworkImage(
+                                                  '${Endpoints.baseUrl}uploads/${appointment['patientId']['profilePic'].toString().split('\\').last}',
+                                                  headers: {
+                                                    'Accept': '*/*',
                                                   },
-                                                  style:
-                                                      ElevatedButton.styleFrom(
-                                                    backgroundColor:
-                                                        Colors.blue,
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 12),
+                                                )
+                                              : null,
+                                      child:
+                                          (appointment['patientId'] == null ||
+                                                  appointment['patientId']
+                                                          ['profilePic'] ==
+                                                      null ||
+                                                  appointment['patientId']
+                                                          ['profilePic']
+                                                      .toString()
+                                                      .isEmpty)
+                                              ? const Icon(
+                                                  Icons.person,
+                                                  size: 30,
+                                                  color: Colors.grey,
+                                                )
+                                              : null,
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  appointment['patientId']
+                                                          ?['name'] ??
+                                                      'Unknown Patient',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
                                                   ),
-                                                  child: const Text(
-                                                      'Mark as Complete'),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    left: 8),
-                                                child: ElevatedButton(
-                                                  onPressed: () {
-                                                    updateAppointmentStatus(
-                                                        appointment['_id'],
-                                                        'rejected');
-                                                  },
-                                                  style:
-                                                      ElevatedButton.styleFrom(
-                                                    backgroundColor: Colors.red,
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 12),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: appointment[
+                                                              'status'] ==
+                                                          'completed'
+                                                      ? Colors.green
+                                                          .withOpacity(0.1)
+                                                      : appointment['status'] ==
+                                                              'rejected'
+                                                          ? Colors.red
+                                                              .withOpacity(0.1)
+                                                          : Colors.orange
+                                                              .withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  appointment['status']
+                                                          ?.toUpperCase() ??
+                                                      'PENDING',
+                                                  style: TextStyle(
+                                                    color: appointment[
+                                                                'status'] ==
+                                                            'completed'
+                                                        ? Colors.green
+                                                        : appointment[
+                                                                    'status'] ==
+                                                                'rejected'
+                                                            ? Colors.red
+                                                            : Colors.orange,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
                                                   ),
-                                                  child: const Text('Cancel'),
                                                 ),
                                               ),
                                             ],
                                           ),
-                                      ],
+                                          const SizedBox(height: 8),
+                                          Wrap(
+                                            spacing: 16,
+                                            children: [
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                      Icons.calendar_today,
+                                                      size: 16,
+                                                      color: Colors.grey),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    _formatDate(appointment[
+                                                            'appointmentDate'] ??
+                                                        ''),
+                                                    style: const TextStyle(
+                                                        fontSize: 14),
+                                                  ),
+                                                ],
+                                              ),
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.access_time,
+                                                      size: 16,
+                                                      color: Colors.grey),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    appointment['time'] ??
+                                                        'Time not specified',
+                                                    style: const TextStyle(
+                                                        fontSize: 14),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
-                                isThreeLine: true,
-                              ),
-                            ],
+                                if (appointment['status'] == 'pending')
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 16),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            updateAppointmentStatus(
+                                                appointment['_id'],
+                                                'completed');
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blue,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12),
+                                          ),
+                                          child: const Text('Mark as Complete'),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            updateAppointmentStatus(
+                                                appointment['_id'], 'rejected');
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12),
+                                          ),
+                                          child: const Text('Cancel'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         );
                       },
