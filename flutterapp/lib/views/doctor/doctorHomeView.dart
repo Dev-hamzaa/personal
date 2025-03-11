@@ -223,8 +223,10 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     CircleAvatar(
                                       radius: 30,
@@ -267,71 +269,104 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            appointment['patientId']?['name'] ??
-                                                'Unknown Patient',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  appointment['patientId']
+                                                          ?['name'] ??
+                                                      'Unknown Patient',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: appointment[
+                                                              'status'] ==
+                                                          'completed'
+                                                      ? Colors.green
+                                                          .withOpacity(0.1)
+                                                      : appointment['status'] ==
+                                                              'rejected'
+                                                          ? Colors.red
+                                                              .withOpacity(0.1)
+                                                          : Colors.orange
+                                                              .withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  appointment['status']
+                                                          ?.toUpperCase() ??
+                                                      'PENDING',
+                                                  style: TextStyle(
+                                                    color: appointment[
+                                                                'status'] ==
+                                                            'completed'
+                                                        ? Colors.green
+                                                        : appointment[
+                                                                    'status'] ==
+                                                                'rejected'
+                                                            ? Colors.red
+                                                            : Colors.orange,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                           const SizedBox(height: 8),
-                                          Row(
+                                          Wrap(
+                                            spacing: 16,
                                             children: [
-                                              const Icon(Icons.calendar_today,
-                                                  size: 16, color: Colors.grey),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                _formatDate(appointment[
-                                                        'appointmentDate'] ??
-                                                    ''),
-                                                style: const TextStyle(
-                                                    fontSize: 14),
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                      Icons.calendar_today,
+                                                      size: 16,
+                                                      color: Colors.grey),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    _formatDate(appointment[
+                                                            'appointmentDate'] ??
+                                                        ''),
+                                                    style: const TextStyle(
+                                                        fontSize: 14),
+                                                  ),
+                                                ],
                                               ),
-                                              const SizedBox(width: 16),
-                                              const Icon(Icons.access_time,
-                                                  size: 16, color: Colors.grey),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                appointment['time'] ??
-                                                    'Time not specified',
-                                                style: const TextStyle(
-                                                    fontSize: 14),
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.access_time,
+                                                      size: 16,
+                                                      color: Colors.grey),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    appointment['time'] ??
+                                                        'Time not specified',
+                                                    style: const TextStyle(
+                                                        fontSize: 14),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
                                         ],
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: appointment['status'] ==
-                                                'completed'
-                                            ? Colors.green.withOpacity(0.1)
-                                            : appointment['status'] ==
-                                                    'rejected'
-                                                ? Colors.red.withOpacity(0.1)
-                                                : Colors.orange
-                                                    .withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        appointment['status']?.toUpperCase() ??
-                                            'PENDING',
-                                        style: TextStyle(
-                                          color: appointment['status'] ==
-                                                  'completed'
-                                              ? Colors.green
-                                              : appointment['status'] ==
-                                                      'rejected'
-                                                  ? Colors.red
-                                                  : Colors.orange,
-                                          fontWeight: FontWeight.bold,
-                                        ),
                                       ),
                                     ),
                                   ],
