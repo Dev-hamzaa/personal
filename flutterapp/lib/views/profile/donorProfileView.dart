@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutterapp/consts/endPoints.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class DonorProfileView extends StatefulWidget {
   const DonorProfileView({super.key});
@@ -22,6 +24,8 @@ class _DonorProfileViewState extends State<DonorProfileView> {
   final phoneController = TextEditingController();
   final bloodTypeController = TextEditingController();
   List<String> selectedOrgans = [];
+  File? _imageFile;
+  String? _profileImageUrl;
 
   @override
   void initState() {
@@ -55,6 +59,23 @@ class _DonorProfileViewState extends State<DonorProfileView> {
             phoneController.text = donorData['phone'] ?? '';
             bloodTypeController.text = donorData['bloodType'] ?? '';
 
+            // Handle profile image URL
+            try {
+              if (donorData.containsKey('profilePic') &&
+                  donorData['profilePic'] != null &&
+                  donorData['profilePic'].toString().isNotEmpty) {
+                final fullPath = donorData['profilePic'].toString();
+                // Extract just the filename from the full path
+                final fileName = fullPath.split('\\').last;
+                _profileImageUrl = '${Endpoints.baseUrl}uploads/$fileName';
+              } else {
+                _profileImageUrl = null;
+              }
+            } catch (e) {
+              print('Error handling image URL: $e');
+              _profileImageUrl = null;
+            }
+
             // Handle organType as array
             if (donorData['organType'] != null) {
               if (donorData['organType'] is List) {
@@ -87,8 +108,42 @@ class _DonorProfileViewState extends State<DonorProfileView> {
     }
   }
 
-  Future<void> updateProfile() async {
+  Future<void> _pickImage() async {
+    if (!mounted) return;
+
     try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null && mounted) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error picking image'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> updateProfile() async {
+    if (!mounted) return;
+
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('userId');
 
@@ -96,41 +151,51 @@ class _DonorProfileViewState extends State<DonorProfileView> {
         throw 'User ID not found';
       }
 
-      final response = await http.put(
+      var request = http.MultipartRequest(
+        'PUT',
         Uri.parse('${Endpoints.baseUrl}api/donor/$userId'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'name': nameController.text,
-          'email': emailController.text,
-          'phone': phoneController.text,
-          'bloodType': bloodTypeController.text,
-          'organType': selectedOrgans,
-        }),
       );
 
+      request.fields['name'] = nameController.text;
+      request.fields['phone'] = phoneController.text;
+      request.fields['bloodType'] = bloodTypeController.text;
+      request.fields['organType'] = json.encode(selectedOrgans);
+
+      if (_imageFile != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'file',
+            _imageFile!.path,
+          ),
+        );
+      }
+
+      final response = await request.send();
+      final responseData = await response.stream.bytesToString();
+
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        if (responseData['success'] == true) {
+        final jsonResponse = json.decode(responseData);
+        if (jsonResponse['success'] == true) {
+          await getDonorDetails();
+          if (!mounted) return;
           setState(() {
             isEditing = false;
           });
-          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Profile updated successfully'),
+              content: Text('Profile Updated Successfully!'),
               backgroundColor: Colors.green,
             ),
           );
         } else {
-          throw responseData['message'] ?? 'Failed to update profile';
+          throw jsonResponse['message'] ?? 'Failed to update profile';
         }
       } else {
-        throw 'Failed to update profile';
+        throw 'Server error: ${response.statusCode}';
       }
     } catch (e) {
-      print('Error updating profile: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -138,6 +203,12 @@ class _DonorProfileViewState extends State<DonorProfileView> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -151,6 +222,7 @@ class _DonorProfileViewState extends State<DonorProfileView> {
     emailController.dispose();
     phoneController.dispose();
     bloodTypeController.dispose();
+    _imageFile = null;
     super.dispose();
   }
 
@@ -180,25 +252,39 @@ class _DonorProfileViewState extends State<DonorProfileView> {
                             CircleAvatar(
                               radius: 50,
                               backgroundColor: Colors.grey[200],
-                              child: Icon(
-                                Icons.person,
-                                size: 50,
-                                color: Colors.grey[400],
-                              ),
+                              backgroundImage: _imageFile != null
+                                  ? FileImage(_imageFile!)
+                                  : (_profileImageUrl != null
+                                      ? NetworkImage(
+                                          _profileImageUrl!,
+                                          headers: {
+                                            'Accept': '*/*',
+                                          },
+                                        )
+                                      : null) as ImageProvider?,
+                              child: (_imageFile == null &&
+                                      _profileImageUrl == null)
+                                  ? Icon(
+                                      Icons.person,
+                                      size: 50,
+                                      color: Colors.grey[400],
+                                    )
+                                  : null,
                             ),
                             if (isEditing)
                               Positioned(
                                 bottom: 0,
                                 right: 0,
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    color: Colors.blue,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.edit,
-                                    color: Colors.white,
-                                    size: 20,
+                                child: CircleAvatar(
+                                  backgroundColor: Colors.blue,
+                                  radius: 18,
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.camera_alt,
+                                      size: 18,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: _pickImage,
                                   ),
                                 ),
                               ),

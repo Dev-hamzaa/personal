@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutterapp/consts/endPoints.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -23,11 +25,15 @@ class _ProfileViewState extends State<ProfileView> {
       TextEditingController();
   bool isEditing = false;
   bool isLoading = true;
+  File? _imageFile;
+  String? _profileImageUrl;
 
   @override
   void initState() {
     super.initState();
-    fetchPatientDetails();
+    if (mounted) {
+      fetchPatientDetails();
+    }
   }
 
   Future<void> fetchPatientDetails() async {
@@ -39,8 +45,6 @@ class _ProfileViewState extends State<ProfileView> {
         throw 'User ID not found';
       }
 
-      print('Fetching patient details for ID: $userId');
-
       final response = await http.get(
         Uri.parse('${Endpoints.getPatientDetails}/$userId'),
         headers: {
@@ -48,23 +52,32 @@ class _ProfileViewState extends State<ProfileView> {
         },
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        print('\n=== Patient Details Response ===');
-        print('Success: ${responseData['success']}');
-        print('Message: ${responseData['message']}');
-        print('Data: ${json.encode(responseData['data'])}');
-        print('===========================\n');
-
         if (responseData['success'] == true && responseData['data'] != null) {
           final userData = responseData['data'];
           setState(() {
             nameController.text = userData['name'] ?? '';
             emailController.text = userData['email'] ?? '';
             phoneController.text = userData['phone'] ?? '';
+
+            // Handle profile image URL
+            try {
+              if (userData.containsKey('profilePic') &&
+                  userData['profilePic'] != null &&
+                  userData['profilePic'].toString().isNotEmpty) {
+                final fullPath = userData['profilePic'].toString();
+                // Extract just the filename from the full path
+                final fileName = fullPath.split('\\').last;
+                _profileImageUrl = '${Endpoints.baseUrl}uploads/$fileName';
+              } else {
+                _profileImageUrl = null;
+              }
+            } catch (e) {
+              print('Error handling image URL: $e');
+              _profileImageUrl = null;
+            }
+
             isLoading = false;
           });
         } else {
@@ -74,7 +87,6 @@ class _ProfileViewState extends State<ProfileView> {
         throw 'Failed to fetch patient details';
       }
     } catch (e) {
-      print('Error fetching patient details: $e');
       if (!mounted) return;
       setState(() {
         isLoading = false;
@@ -88,7 +100,47 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    specializationController.dispose();
+    _imageFile = null;
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    if (!mounted) return;
+
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null && mounted) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error picking image'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> updateProfile() async {
+    if (!mounted) return;
+
     try {
       setState(() {
         isLoading = true;
@@ -101,35 +153,36 @@ class _ProfileViewState extends State<ProfileView> {
         throw 'User ID not found';
       }
 
-      print('Updating profile for ID: $userId');
-      print('Update data: ${json.encode({
-            'name': nameController.text,
-            'phone': phoneController.text,
-          })}');
-
-      final response = await http.put(
+      var request = http.MultipartRequest(
+        'PUT',
         Uri.parse('${Endpoints.getPatientDetails}/$userId'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'name': nameController.text,
-          'phone': phoneController.text,
-        }),
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      request.fields['name'] = nameController.text;
+      request.fields['phone'] = phoneController.text;
+
+      if (_imageFile != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'file',
+            _imageFile!.path,
+          ),
+        );
+      }
+
+      final response = await request.send();
+      final responseData = await response.stream.bytesToString();
+
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        if (responseData['success'] == true) {
-          // Fetch updated details
+        final jsonResponse = json.decode(responseData);
+        if (jsonResponse['success'] == true) {
           await fetchPatientDetails();
+          if (!mounted) return;
           setState(() {
             isEditing = false;
           });
-          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Profile Updated Successfully!'),
@@ -137,23 +190,25 @@ class _ProfileViewState extends State<ProfileView> {
             ),
           );
         } else {
-          throw responseData['message'] ?? 'Failed to update profile';
+          throw jsonResponse['message'] ?? 'Failed to update profile';
         }
       } else {
-        throw 'Failed to update profile';
+        throw 'Server error: ${response.statusCode}';
       }
     } catch (e) {
-      print('Error updating profile: $e');
       if (!mounted) return;
-      setState(() {
-        isLoading = false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -184,11 +239,24 @@ class _ProfileViewState extends State<ProfileView> {
                             CircleAvatar(
                               radius: 60,
                               backgroundColor: Colors.grey[300],
-                              child: const Icon(
-                                Icons.person,
-                                size: 60,
-                                color: Colors.grey,
-                              ),
+                              backgroundImage: _imageFile != null
+                                  ? FileImage(_imageFile!)
+                                  : (_profileImageUrl != null
+                                      ? NetworkImage(
+                                          _profileImageUrl!,
+                                          headers: {
+                                            'Accept': '*/*',
+                                          },
+                                        )
+                                      : null) as ImageProvider?,
+                              child: (_imageFile == null &&
+                                      _profileImageUrl == null)
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 60,
+                                      color: Colors.grey,
+                                    )
+                                  : null,
                             ),
                             if (isEditing)
                               Positioned(
@@ -203,9 +271,7 @@ class _ProfileViewState extends State<ProfileView> {
                                       size: 18,
                                       color: Colors.white,
                                     ),
-                                    onPressed: () {
-                                      // TODO: Implement image picker
-                                    },
+                                    onPressed: _pickImage,
                                   ),
                                 ),
                               ),
@@ -260,17 +326,8 @@ class _ProfileViewState extends State<ProfileView> {
                           CustomButton(
                             buttonText: "Update Profile",
                             onTap: () {
-                              print('\n=== Update Profile Button Clicked ===');
-                              print('isLoading: $isLoading');
-                              print('isEditing: $isEditing');
-                              print('Name: ${nameController.text}');
-                              print('Phone: ${phoneController.text}');
-                              print('================================\n');
-
                               if (!isLoading) {
                                 updateProfile();
-                              } else {
-                                print('Update skipped - loading state is true');
                               }
                             },
                           ),
@@ -283,15 +340,6 @@ class _ProfileViewState extends State<ProfileView> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    nameController.dispose();
-    emailController.dispose();
-    phoneController.dispose();
-    specializationController.dispose();
-    super.dispose();
   }
 }
 

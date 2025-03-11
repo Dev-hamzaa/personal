@@ -67,11 +67,11 @@ const getAppointments = async (req, res, next) => {
     const found = await Appointment.find(query)
       .populate({
         path: "doctorId",
-        select: { _id: 1, name: 1, specialization: 1 },
+        select: { _id: 1, name: 1, specialization: 1, profilePic: 1 },
       })
       .populate({
         path: "patientId",
-        select: { _id: 1, name: 1, email: 1 },
+        select: { _id: 1, name: 1, email: 1, profilePic: 1 },
       })
       .sort({ createdAt: -1 });
     console.log(found);

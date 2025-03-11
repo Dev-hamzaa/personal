@@ -6,6 +6,8 @@ import 'package:flutterapp/consts/endPoints.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class DoctorProfileView extends StatefulWidget {
   const DoctorProfileView({super.key});
@@ -18,12 +20,19 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController specializationController =
-      TextEditingController();
-  final TextEditingController startTimeController = TextEditingController();
-  final TextEditingController endTimeController = TextEditingController();
+  String selectedSpecialization = '';
   bool isEditing = false;
   bool isLoading = true;
+  File? _imageFile;
+  String? _profileImageUrl;
+
+  // Add list of specializations
+  final List<String> specializations = [
+    'Cardiologist',
+    'Dentist',
+    'Pediatrician',
+    'Neurologist',
+  ];
 
   // Schedule data structure
   List<Map<String, dynamic>> schedules = [];
@@ -43,6 +52,106 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
     fetchDoctorDetails();
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error picking image'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _uploadImage() async {
+    if (_imageFile == null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('userId');
+
+      if (userId == null) {
+        throw 'User ID not found';
+      }
+
+      // Create multipart request
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${Endpoints.getDoctorDetails}/$userId/upload-image'),
+      );
+
+      // Add headers
+      request.headers.addAll({
+        'Accept': 'application/json',
+      });
+
+      // Add image file
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'profilePic',
+          _imageFile!.path,
+        ),
+      );
+
+      print('Uploading image to: ${request.url}');
+      print('File path: ${_imageFile!.path}');
+
+      // Send the request
+      var response = await request.send();
+      var responseData = await response.stream.bytesToString();
+
+      print('Response status: ${response.statusCode}');
+      print('Response data: $responseData');
+
+      if (response.statusCode == 200) {
+        try {
+          var jsonResponse = json.decode(responseData);
+          if (jsonResponse['success'] == true) {
+            setState(() {
+              _profileImageUrl = jsonResponse['data']['imageUrl'];
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Profile picture updated successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            throw jsonResponse['message'] ?? 'Failed to upload image';
+          }
+        } catch (e) {
+          print('Error parsing response: $e');
+          throw 'Invalid response from server';
+        }
+      } else {
+        throw 'Server error: ${response.statusCode}';
+      }
+    } catch (e) {
+      print('Error uploading image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> fetchDoctorDetails() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -53,18 +162,15 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
       }
 
       final response = await http.get(
-        Uri.parse('${Endpoints.getDoctorDetails}/$userId'),
+        Uri.parse('${Endpoints.baseUrl}api/doctor/$userId'),
         headers: {
           'Content-Type': 'application/json',
         },
       );
 
-      print('Fetching doctor details for userId: $userId');
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
+        print('Response from server: $responseData'); // Debug log
 
         if (responseData['success'] == true && responseData['data'] != null) {
           final doctorData = responseData['data'];
@@ -72,7 +178,26 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
             nameController.text = doctorData['name'] ?? '';
             emailController.text = doctorData['email'] ?? '';
             phoneController.text = doctorData['phone'] ?? '';
-            specializationController.text = doctorData['specialization'] ?? '';
+            selectedSpecialization = doctorData['specialization'] ?? '';
+
+            // Safely handle imageUrl - it might not exist for new users
+            try {
+              if (doctorData.containsKey('profilePic') &&
+                  doctorData['profilePic'] != null &&
+                  doctorData['profilePic'].toString().isNotEmpty) {
+                final fullPath = doctorData['profilePic'].toString();
+                // Extract just the filename from the full path
+                final fileName = fullPath.split('\\').last;
+                _profileImageUrl = '${Endpoints.baseUrl}uploads/$fileName';
+                print('Image URL constructed: $_profileImageUrl'); // Debug log
+              } else {
+                _profileImageUrl = null;
+                print('No profile image URL found in response'); // Debug log
+              }
+            } catch (e) {
+              print('Error handling image URL: $e');
+              _profileImageUrl = null;
+            }
 
             // Handle schedules if they exist in the response
             if (doctorData['weeklySchedule'] != null &&
@@ -159,36 +284,82 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
         };
       }).toList();
 
-      final Map<String, dynamic> updateData = {
-        'name': nameController.text,
-        'email': emailController.text,
-        'phoneNumber': phoneController.text,
-        'specialization': specializationController.text,
-        'weeklySchedule': formattedSchedules,
-      };
-
-      print('update Request Body is: ${json.encode(updateData)}');
-
-      final response = await http.put(
+      // Create multipart request
+      var request = http.MultipartRequest(
+        'PUT',
         Uri.parse('${Endpoints.getDoctorDetails}/$userId'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode(updateData),
       );
 
-      if (response.statusCode == 200) {
-        setState(() {
-          isEditing = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile Updated Successfully!'),
-            backgroundColor: Colors.green,
+      // Add text fields
+      request.fields['name'] = nameController.text;
+      request.fields['email'] = emailController.text;
+      request.fields['phoneNumber'] = phoneController.text;
+      request.fields['specialization'] = selectedSpecialization;
+      request.fields['weeklySchedule'] = json.encode(formattedSchedules);
+
+      // Add image file if selected
+      if (_imageFile != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'file',
+            _imageFile!.path,
           ),
         );
+      }
+
+      // Log complete request details
+      print('\n=== Request Details ===');
+      print('URL: ${request.url}');
+      print('\nFields:');
+      request.fields.forEach((key, value) {
+        print('$key: $value');
+      });
+      print('\nFiles:');
+      for (var file in request.files) {
+        print('Field: ${file.field}');
+        print('Filename: ${file.filename}');
+        print('Content-Type: ${file.contentType}');
+        print('Length: ${file.length}');
+      }
+      print('\nHeaders:');
+      request.headers.forEach((key, value) {
+        print('$key: $value');
+      });
+      print('====================\n');
+
+      // Send the request
+      var response = await request.send();
+      var responseData = await response.stream.bytesToString();
+
+      print('Response status: ${response.statusCode}');
+      print('Response data: $responseData');
+
+      if (response.statusCode == 200) {
+        try {
+          var jsonResponse = json.decode(responseData);
+          if (jsonResponse['success'] == true) {
+            setState(() {
+              isEditing = false;
+              if (jsonResponse['data'] != null &&
+                  jsonResponse['data']['imageUrl'] != null) {
+                _profileImageUrl = jsonResponse['data']['imageUrl'];
+              }
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Profile Updated Successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            throw jsonResponse['message'] ?? 'Failed to update profile';
+          }
+        } catch (e) {
+          print('Error parsing response: $e');
+          throw 'Invalid response from server';
+        }
       } else {
-        throw 'Failed to update profile';
+        throw 'Server error: ${response.statusCode}';
       }
     } catch (e) {
       print('Error updating profile: $e');
@@ -201,36 +372,6 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
     }
   }
 
-  // Helper function to convert 24-hour time to 12-hour format with AM/PM
-  String convertTo12Hour(String time24) {
-    try {
-      // Remove any extra spaces
-      time24 = time24.trim();
-
-      // Parse the time
-      List<String> parts = time24.split(':');
-      int hour = int.parse(parts[0]);
-      int minute = int.parse(parts[1]);
-
-      // Convert to 12-hour format
-      String period = 'AM';
-      if (hour >= 12) {
-        period = 'PM';
-        if (hour > 12) {
-          hour -= 12;
-        }
-      } else if (hour == 0) {
-        hour = 12;
-      }
-
-      // Return formatted string
-      return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
-    } catch (e) {
-      print('Error converting time: $e');
-      return time24; // Return original if conversion fails
-    }
-  }
-
   void _addNewSchedule() {
     setState(() {
       schedules.add({
@@ -238,12 +379,6 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
         'start': '09:00',
         'end': '17:00',
       });
-    });
-  }
-
-  void _removeSchedule(int index) {
-    setState(() {
-      schedules.removeAt(index);
     });
   }
 
@@ -270,8 +405,6 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
         } else {
           schedules[index]['end'] = formattedTime;
         }
-
-        print('Selected time: $formattedTime');
       });
     }
   }
@@ -294,14 +427,51 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
                     Center(
                       child: Column(
                         children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Colors.grey[300],
-                            child: const Icon(
-                              Icons.person,
-                              size: 50,
-                              color: Colors.grey,
-                            ),
+                          Stack(
+                            children: [
+                              CircleAvatar(
+                                radius: 50,
+                                backgroundColor: Colors.grey[300],
+                                backgroundImage: _profileImageUrl != null
+                                    ? NetworkImage(
+                                        _profileImageUrl!,
+                                        headers: {
+                                          'Accept': '*/*',
+                                        },
+                                      )
+                                    : _imageFile != null
+                                        ? FileImage(_imageFile!)
+                                            as ImageProvider
+                                        : null,
+                                child: (_profileImageUrl == null &&
+                                        _imageFile == null)
+                                    ? const Icon(
+                                        Icons.person,
+                                        size: 50,
+                                        color: Colors.grey,
+                                      )
+                                    : null,
+                              ),
+                              if (isEditing)
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      color: Colors.blue,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.camera_alt,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                      onPressed: _pickImage,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 16),
                           TextButton.icon(
@@ -343,11 +513,39 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
                     ),
                     const SizedBox(height: 16),
 
-                    CustomTextField(
-                      hint: "Specialization",
-                      prefixIcon: Icons.work,
-                      textController: specializationController,
-                      readOnly: !isEditing,
+                    // Replace CustomTextField with DropdownButtonFormField for specialization
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: DropdownButtonFormField<String>(
+                        value: specializations.contains(selectedSpecialization)
+                            ? selectedSpecialization
+                            : null,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          prefixIcon: Icon(Icons.work),
+                          contentPadding: EdgeInsets.symmetric(vertical: 8),
+                        ),
+                        hint: const Text('Select Specialization'),
+                        items: specializations.map((String specialty) {
+                          return DropdownMenuItem<String>(
+                            value: specialty,
+                            child: Text(specialty),
+                          );
+                        }).toList(),
+                        onChanged: isEditing
+                            ? (String? value) {
+                                if (value != null) {
+                                  setState(() {
+                                    selectedSpecialization = value;
+                                  });
+                                }
+                              }
+                            : null,
+                      ),
                     ),
                     const SizedBox(height: 24),
 
@@ -499,9 +697,6 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
     nameController.dispose();
     emailController.dispose();
     phoneController.dispose();
-    specializationController.dispose();
-    startTimeController.dispose();
-    endTimeController.dispose();
     super.dispose();
   }
 }
