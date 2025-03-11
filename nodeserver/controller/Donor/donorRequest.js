@@ -61,7 +61,7 @@ const getRequestDetail = async (req, res, next) => {
 
 const getRequests = async (req, res, next) => {
   try {
-    const { donor, patientId, requestedOrgan, status, blood, patient } =
+    const { donor, patientId, requestedOrgan, status, blood, patient,donorblood } =
       req.query;
     // console.log("heere", patientId);
 
@@ -83,7 +83,14 @@ const getRequests = async (req, res, next) => {
     }
     if (blood && patient === true) {
       query.bloodOnly = true;
-    } else {
+    }
+
+     console.log(typeof donorblood)
+    if(donorblood==="true"){
+      query.bloodOnly = true;
+
+    }
+     else {
       query.bloodOnly = false;
     }
     console.log(query);
@@ -99,7 +106,7 @@ const getRequests = async (req, res, next) => {
         select: { _id: 1, name: 1, email: 1, profilePic: 1 },
       })
       .sort({ createdAt: -1 });
-    console.log(found);
+    // console.log(found);
     return res.json({
       success: true,
       message: "donorRequesting Listing",

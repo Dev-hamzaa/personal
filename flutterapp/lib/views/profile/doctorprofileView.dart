@@ -301,7 +301,7 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
       if (_imageFile != null) {
         request.files.add(
           await http.MultipartFile.fromPath(
-            'profilePic',
+            'file',
             _imageFile!.path,
           ),
         );
