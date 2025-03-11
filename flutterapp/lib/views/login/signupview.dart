@@ -23,11 +23,18 @@ class _SignupViewState extends State<SignupView> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
-  final TextEditingController specializationController =
-      TextEditingController();
+  String selectedSpecialization = ''; // Add this line
   final TextEditingController bloodTypeController = TextEditingController();
   final TextEditingController organDonationStatusController =
       TextEditingController();
+
+  // Add list of specializations
+  final List<String> specializations = [
+    'Cardiologist',
+    'Dentist',
+    'Pediatrician',
+    'Neurologist',
+  ];
 
   // Add base URL constant
   // final String baseUrl = 'http://192.168.0.106:4000/api/auth/register'; // Replace with your actual API base URL
@@ -63,10 +70,10 @@ class _SignupViewState extends State<SignupView> {
 
       // Add role-specific data
       if (selectedRole == 'doctor') {
-        if (specializationController.text.isEmpty) {
-          throw 'Please enter specialization';
+        if (selectedSpecialization.isEmpty) {
+          throw 'Please select specialization';
         }
-        userData['specialization'] = specializationController.text;
+        userData['specialization'] = selectedSpecialization;
       } else if (selectedRole == 'donor') {
         if (bloodTypeController.text.isEmpty ||
             organDonationStatusController.text.isEmpty) {
@@ -134,7 +141,7 @@ class _SignupViewState extends State<SignupView> {
     emailController.clear();
     passwordController.clear();
     confirmPasswordController.clear();
-    specializationController.clear();
+    selectedSpecialization = '';
     bloodTypeController.clear();
     organDonationStatusController.clear();
   }
@@ -245,10 +252,36 @@ class _SignupViewState extends State<SignupView> {
                       ),
                       if (selectedRole == 'doctor') ...[
                         10.heightBox,
-                        CustomTextField(
-                          hint: "Specialization",
-                          prefixIcon: Icons.work,
-                          textController: specializationController,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            value: selectedSpecialization.isEmpty
+                                ? null
+                                : selectedSpecialization,
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              prefixIcon: Icon(Icons.work),
+                              contentPadding: EdgeInsets.symmetric(vertical: 8),
+                            ),
+                            hint: const Text('Select Specialization'),
+                            items: specializations.map((String specialty) {
+                              return DropdownMenuItem<String>(
+                                value: specialty,
+                                child: Text(specialty),
+                              );
+                            }).toList(),
+                            onChanged: (String? value) {
+                              if (value != null) {
+                                setState(() {
+                                  selectedSpecialization = value;
+                                });
+                              }
+                            },
+                          ),
                         ),
                       ],
                       if (selectedRole == 'donor') ...[
@@ -409,7 +442,6 @@ class _SignupViewState extends State<SignupView> {
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
-    specializationController.dispose();
     bloodTypeController.dispose();
     organDonationStatusController.dispose();
     super.dispose();

@@ -81,6 +81,15 @@ const updateDonor = async (req, reply) => {
   try {
     const { id } = req.params;
     const { name, phone, selectedOrgan, bloodType } = req.body;
+    const foundDonor = await User.findById({
+      _id: id,
+    });
+    if (!foundDonor) {
+      return reply.send({
+        success: false,
+        message: "Not found",
+      });
+    }
     const updatePatient = await User.findByIdAndUpdate(
       {
         _id: id,
@@ -90,6 +99,7 @@ const updateDonor = async (req, reply) => {
         phone,
         bloodType,
         selectedOrgan,
+        profilePic: req.file ? req.file.path : foundDonor.profilePic,
       },
       {
         new: true,
@@ -101,6 +111,7 @@ const updateDonor = async (req, reply) => {
       data: updatePatient,
     });
   } catch (error) {
+    console.log(error);
     return reply.json({
       message: "internal server error",
       data: error.message,

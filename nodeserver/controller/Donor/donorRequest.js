@@ -92,11 +92,11 @@ const getRequests = async (req, res, next) => {
       .find(query)
       .populate({
         path: "donorId",
-        select: { _id: 1, name: 1, email: 1 },
+        select: { _id: 1, name: 1, email: 1, profilePic: 1 },
       })
       .populate({
         path: "patientId",
-        select: { _id: 1, name: 1, email: 1 },
+        select: { _id: 1, name: 1, email: 1, profilePic: 1 },
       })
       .sort({ createdAt: -1 });
     console.log(found);
@@ -148,11 +148,11 @@ const getPatientRequest = async (req, res, next) => {
       .find(query)
       .populate({
         path: "donorId",
-        select: { _id: 1, name: 1, email: 1 },
+        select: { _id: 1, name: 1, email: 1, profilePic: 1 },
       })
       .populate({
         path: "patientId",
-        select: { _id: 1, name: 1, email: 1 },
+        select: { _id: 1, name: 1, email: 1, profilePic: 1 },
       })
       .sort({ createdAt: -1 });
     console.log(found);

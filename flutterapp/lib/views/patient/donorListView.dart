@@ -102,15 +102,33 @@ class _DonorListViewState extends State<DonorListView> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Profile Picture Section (Commented Out)
-                                    /*
                                     Row(
                                       children: [
                                         CircleAvatar(
-                                          backgroundColor: Colors.blue[100],
                                           radius: 30,
-                                          child: const Icon(Icons.person,
-                                              size: 30, color: Colors.blue),
+                                          backgroundColor: Colors.grey[300],
+                                          backgroundImage:
+                                              donor['profilePic'] != null &&
+                                                      donor['profilePic']
+                                                          .toString()
+                                                          .isNotEmpty
+                                                  ? NetworkImage(
+                                                      '${Endpoints.baseUrl}uploads/${donor['profilePic'].toString().split('\\').last}',
+                                                      headers: {
+                                                        'Accept': '*/*',
+                                                      },
+                                                    )
+                                                  : null,
+                                          child: donor['profilePic'] == null ||
+                                                  donor['profilePic']
+                                                      .toString()
+                                                      .isEmpty
+                                              ? const Icon(
+                                                  Icons.person,
+                                                  size: 30,
+                                                  color: Colors.grey,
+                                                )
+                                              : null,
                                         ),
                                         const SizedBox(width: 16),
                                         Expanded(
@@ -121,7 +139,7 @@ class _DonorListViewState extends State<DonorListView> {
                                               Text(
                                                 donor['name'] ?? 'Unknown',
                                                 style: const TextStyle(
-                                                  fontSize: 18,
+                                                  fontSize: 20,
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
@@ -140,32 +158,7 @@ class _DonorListViewState extends State<DonorListView> {
                                     const SizedBox(height: 16),
                                     const Divider(),
                                     const SizedBox(height: 16),
-                                    */
-
                                     // Donor Information
-                                    Text(
-                                      donor['name'] ?? 'Unknown',
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.email,
-                                            color: Colors.grey[600]),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          donor['email'] ?? 'N/A',
-                                          style: TextStyle(
-                                            color: Colors.grey[800],
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
                                     Row(
                                       children: [
                                         Icon(Icons.phone,
@@ -202,13 +195,22 @@ class _DonorListViewState extends State<DonorListView> {
                                             color: Colors.grey[600]),
                                         const SizedBox(width: 8),
                                         Text(
-                                          'Organs to Donate: ${donor['selectedOrgan']?.join(',') ?? 'N/A'}',
+                                          'Organs to Donate:',
                                           style: TextStyle(
                                             color: Colors.grey[800],
                                             fontSize: 16,
                                           ),
                                         ),
                                       ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      children: (donor['selectedOrgan']
+                                                  as List<dynamic>?)
+                                              ?.map((organ) => _buildOrganChip(
+                                                  organ.toString()))
+                                              .toList() ??
+                                          [],
                                     ),
                                     const SizedBox(height: 16),
                                     SizedBox(

@@ -590,10 +590,33 @@ class _PatientAppointmentsState extends State<PatientAppointments> {
                                 CircleAvatar(
                                   radius: 25,
                                   backgroundColor: Colors.blue.withOpacity(0.1),
-                                  child: const Icon(
-                                    Icons.person,
-                                    color: Colors.blue,
-                                  ),
+                                  backgroundImage: appointment['doctorId'] !=
+                                              null &&
+                                          appointment['doctorId']
+                                                  ['profilePic'] !=
+                                              null &&
+                                          appointment['doctorId']['profilePic']
+                                              .toString()
+                                              .isNotEmpty
+                                      ? NetworkImage(
+                                          '${Endpoints.baseUrl}uploads/${appointment['doctorId']['profilePic'].toString().split('\\').last}',
+                                          headers: {
+                                            'Accept': '*/*',
+                                          },
+                                        )
+                                      : null,
+                                  child: (appointment['doctorId'] == null ||
+                                          appointment['doctorId']
+                                                  ['profilePic'] ==
+                                              null ||
+                                          appointment['doctorId']['profilePic']
+                                              .toString()
+                                              .isEmpty)
+                                      ? const Icon(
+                                          Icons.person,
+                                          color: Colors.blue,
+                                        )
+                                      : null,
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(

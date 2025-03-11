@@ -8,6 +8,13 @@ const userSchema = new mongoose.Schema(
     profilePic: { type: String },
     bloodType: { type: String },
     specialization: { type: String },
+    rating: { type: Number, default: 0 },
+    ratedBy: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Reference to user
+        rating: { type: Number, min: 1, max: 5 }, // Store the rating
+      },
+    ],
     selectedOrgan: { type: [String] },
     // phoneNumber: { type: String },
     userRole: {

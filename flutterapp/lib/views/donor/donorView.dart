@@ -17,6 +17,8 @@ class _DonorViewState extends State<DonorView>
   late TabController _tabController;
   List<dynamic> requests = [];
   bool isLoading = true;
+  bool isLoadingUser = true;
+  Map<String, dynamic>? donorDetails;
 
   @override
   void initState() {
@@ -25,7 +27,52 @@ class _DonorViewState extends State<DonorView>
     _tabController.addListener(() {
       fetchDonorRequests(); // Fetch requests when tab changes
     });
+    fetchDonorDetails();
     fetchDonorRequests();
+  }
+
+  Future<void> fetchDonorDetails() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('userId');
+
+      if (userId == null) {
+        throw 'User ID not found';
+      }
+
+      final response = await http.get(
+        Uri.parse('${Endpoints.baseUrl}api/donor/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['success'] == true && responseData['data'] != null) {
+          setState(() {
+            donorDetails = responseData['data'];
+            isLoadingUser = false;
+          });
+        } else {
+          throw 'Invalid response format';
+        }
+      } else {
+        throw 'Failed to fetch donor details';
+      }
+    } catch (e) {
+      print('Error fetching donor details: $e');
+      if (!mounted) return;
+      setState(() {
+        isLoadingUser = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> fetchDonorRequests() async {
@@ -156,6 +203,62 @@ class _DonorViewState extends State<DonorView>
         child: Column(
           children: [
             const Header(),
+            if (!isLoadingUser && donorDetails != null)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundColor: Colors.grey[300],
+                      backgroundImage: donorDetails?['profilePic'] != null &&
+                              donorDetails!['profilePic'].toString().isNotEmpty
+                          ? NetworkImage(
+                              '${Endpoints.baseUrl}uploads/${donorDetails!['profilePic'].toString().split('\\').last}',
+                              headers: {
+                                'Accept': '*/*',
+                              },
+                            )
+                          : null,
+                      child: donorDetails?['profilePic'] == null ||
+                              donorDetails!['profilePic'].toString().isEmpty
+                          ? const Icon(
+                              Icons.person,
+                              size: 30,
+                              color: Colors.grey,
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Welcome, ${donorDetails?['name'] ?? 'Donor'}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                            ),
+                          ),
+                          if (donorDetails?['email'] != null)
+                            Text(
+                              donorDetails!['email'],
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Container(
               decoration: BoxDecoration(
                 border: Border(
@@ -209,54 +312,110 @@ class _DonorViewState extends State<DonorView>
                             return Card(
                               elevation: 2,
                               margin: const EdgeInsets.symmetric(vertical: 8),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.all(16),
-                                title: Text(
-                                  request['patientId']?['name'] ?? 'Unknown',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
                                   children: [
-                                    const SizedBox(height: 8),
-                                    Text(
-                                        'Organ Needed: ${request['requestedOrgan']}'),
-                                    Text('Status: ${request['status']}'),
-                                    Text(
-                                        'Requested on: ${DateTime.parse(request['createdAt']).toLocal().toString().split(' ')[0]}'),
-                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 30,
+                                          backgroundColor: Colors.grey[300],
+                                          backgroundImage:
+                                              request['patientId'] != null &&
+                                                      request['patientId']
+                                                              ['profilePic'] !=
+                                                          null &&
+                                                      request['patientId']
+                                                              ['profilePic']
+                                                          .toString()
+                                                          .isNotEmpty
+                                                  ? NetworkImage(
+                                                      '${Endpoints.baseUrl}uploads/${request['patientId']['profilePic'].toString().split('\\').last}',
+                                                      headers: {
+                                                        'Accept': '*/*',
+                                                      },
+                                                    )
+                                                  : null,
+                                          child:
+                                              (request['patientId'] == null ||
+                                                      request['patientId']
+                                                              ['profilePic'] ==
+                                                          null ||
+                                                      request['patientId']
+                                                              ['profilePic']
+                                                          .toString()
+                                                          .isEmpty)
+                                                  ? const Icon(
+                                                      Icons.person,
+                                                      size: 30,
+                                                      color: Colors.grey,
+                                                    )
+                                                  : null,
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                request['patientId']?['name'] ??
+                                                    'Unknown',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                  'Organ Needed: ${request['requestedOrgan']}'),
+                                              Text(
+                                                  'Status: ${request['status']}'),
+                                              Text(
+                                                'Requested on: ${DateTime.parse(request['createdAt']).toLocal().toString().split(' ')[0]}',
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                     if (request['status'] == 'pending')
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          ElevatedButton(
-                                            onPressed: () =>
-                                                updateRequestStatus(
-                                                    request['_id'], 'accepted'),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.green,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 12),
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 16),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          children: [
+                                            ElevatedButton(
+                                              onPressed: () =>
+                                                  updateRequestStatus(
+                                                      request['_id'],
+                                                      'accepted'),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.green,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 12),
+                                              ),
+                                              child: const Text('Accept'),
                                             ),
-                                            child: const Text('Accept'),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          ElevatedButton(
-                                            onPressed: () =>
-                                                updateRequestStatus(
-                                                    request['_id'], 'rejected'),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.red,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 12),
+                                            const SizedBox(width: 8),
+                                            ElevatedButton(
+                                              onPressed: () =>
+                                                  updateRequestStatus(
+                                                      request['_id'],
+                                                      'rejected'),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 12),
+                                              ),
+                                              child: const Text('Decline'),
                                             ),
-                                            child: const Text('Decline'),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                   ],
                                 ),
@@ -274,53 +433,110 @@ class _DonorViewState extends State<DonorView>
                             return Card(
                               elevation: 2,
                               margin: const EdgeInsets.symmetric(vertical: 8),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.all(16),
-                                title: Text(
-                                  request['patientId']?['name'] ?? 'Unknown',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
                                   children: [
-                                    const SizedBox(height: 8),
-                                    Text('Blood Type: ${request['bloodType']}'),
-                                    Text('Status: ${request['status']}'),
-                                    Text(
-                                        'Requested on: ${DateTime.parse(request['createdAt']).toLocal().toString().split(' ')[0]}'),
-                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 30,
+                                          backgroundColor: Colors.grey[300],
+                                          backgroundImage:
+                                              request['patientId'] != null &&
+                                                      request['patientId']
+                                                              ['profilePic'] !=
+                                                          null &&
+                                                      request['patientId']
+                                                              ['profilePic']
+                                                          .toString()
+                                                          .isNotEmpty
+                                                  ? NetworkImage(
+                                                      '${Endpoints.baseUrl}uploads/${request['patientId']['profilePic'].toString().split('\\').last}',
+                                                      headers: {
+                                                        'Accept': '*/*',
+                                                      },
+                                                    )
+                                                  : null,
+                                          child:
+                                              (request['patientId'] == null ||
+                                                      request['patientId']
+                                                              ['profilePic'] ==
+                                                          null ||
+                                                      request['patientId']
+                                                              ['profilePic']
+                                                          .toString()
+                                                          .isEmpty)
+                                                  ? const Icon(
+                                                      Icons.person,
+                                                      size: 30,
+                                                      color: Colors.grey,
+                                                    )
+                                                  : null,
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                request['patientId']?['name'] ??
+                                                    'Unknown',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                  'Blood Type: ${request['bloodType']}'),
+                                              Text(
+                                                  'Status: ${request['status']}'),
+                                              Text(
+                                                'Requested on: ${DateTime.parse(request['createdAt']).toLocal().toString().split(' ')[0]}',
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                     if (request['status'] == 'pending')
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          ElevatedButton(
-                                            onPressed: () =>
-                                                updateRequestStatus(
-                                                    request['_id'], 'accepted'),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.green,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 12),
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 16),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          children: [
+                                            ElevatedButton(
+                                              onPressed: () =>
+                                                  updateRequestStatus(
+                                                      request['_id'],
+                                                      'accepted'),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.green,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 12),
+                                              ),
+                                              child: const Text('Accept'),
                                             ),
-                                            child: const Text('Accept'),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          ElevatedButton(
-                                            onPressed: () =>
-                                                updateRequestStatus(
-                                                    request['_id'], 'rejected'),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.red,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 12),
+                                            const SizedBox(width: 8),
+                                            ElevatedButton(
+                                              onPressed: () =>
+                                                  updateRequestStatus(
+                                                      request['_id'],
+                                                      'rejected'),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 12),
+                                              ),
+                                              child: const Text('Decline'),
                                             ),
-                                            child: const Text('Decline'),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                   ],
                                 ),

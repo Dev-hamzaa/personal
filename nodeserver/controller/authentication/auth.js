@@ -70,7 +70,7 @@ const login = async (req, reply) => {
   }
   try {
     const user = await User.findOne({
-      email: email,
+      email: email.toLowerCase(),
       password: password,
     }).select("+password");
     if (!user) {

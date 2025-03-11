@@ -82,7 +82,16 @@ const updatePatient = async (req, reply) => {
   try {
     const { id } = req.params;
     const { name, phone } = req.body;
-    console.log(req.body);
+    console.log(req.file);
+    const foundPatient = await User.findById({
+      _id: id,
+    });
+    if (!foundPatient) {
+      return reply.send({
+        success: false,
+        message: "Not found",
+      });
+    }
     const updatePatient = await User.findByIdAndUpdate(
       {
         _id: id,
@@ -90,6 +99,7 @@ const updatePatient = async (req, reply) => {
       {
         name,
         phone: phone,
+        profilePic: req.file ? req.file.path : foundPatient.profilePic,
       },
       {
         new: true,

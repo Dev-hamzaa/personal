@@ -68,7 +68,7 @@ const doctorDetail = async (req, reply) => {
         message: "Doctor not found",
       });
     }
-
+    console.log(docDetail?.profilePic);
     const formattedSchedule =
       docDetail.weeklySchedule?.map(({ day, start, end }) => {
         return {
@@ -125,10 +125,10 @@ const deleteDoctor = async (req, reply) => {
 const updateDoctor = async (req, reply) => {
   try {
     const { id } = req.params;
-    const { name, email, specialization, phoneNumber, weeklySchedule } =
+    const { name, email, specialization, phone, weeklySchedule, rating } =
       req.body;
     console.log(req.body);
-
+    console.log(req.file);
     // Check if doctor exists
     const foundDoctor = await User.findById(id);
     if (!foundDoctor) {
@@ -137,26 +137,46 @@ const updateDoctor = async (req, reply) => {
         message: "Doctor not found",
       });
     }
-
+    let formattedSchedule;
     // Convert time strings to Date objects
-    const formattedSchedule = weeklySchedule?.map(({ day, start, end }) => ({
-      day,
-      start: DateTime.fromFormat(start, "hh:mm a").toJSDate(),
-      end: DateTime.fromFormat(end, "hh:mm a").toJSDate(),
-    }));
+    if (weeklySchedule) {
+      formattedSchedule = JSON.parse(weeklySchedule)?.map(
+        ({ day, start, end }) => ({
+          day,
+          start: DateTime.fromFormat(start, "hh:mm a").toJSDate(),
+          end: DateTime.fromFormat(end, "hh:mm a").toJSDate(),
+        })
+      );
+    }
 
     // Update doctor in DB
     const updatedDoctor = await User.findByIdAndUpdate(
       id, // Pass ID directly instead of `{ _id: id }`
       {
-        name,
-        email,
-        specialization,
-        phoneNumber,
-        weeklySchedule: formattedSchedule, // Store the converted schedule
+        name: name ? name : foundDoctor.name,
+        email: email ? email : foundDoctor,
+        specialization: specialization
+          ? specialization
+          : foundDoctor.specialization,
+        phone: phone ? phone : foundDoctor.phone,
+        weeklySchedule: weeklySchedule
+          ? formattedSchedule
+          : foundDoctor.weeklySchedule,
+        profilePic: req.file ? req.file.path : foundDoctor.profilePic,
+        rating: rating ? rating : foundDoctor.rating,
       },
       { new: true }
     );
+
+    // if (req.file) {
+    //   await User.findByIdAndUpdate(
+    //     id, // Pass ID directly instead of `{ _id: id }`
+    //     {
+    //       profilePic: req.file ?? req.file.path,
+    //     },
+    //     { new: true }
+    //   );
+    // }
 
     return reply.json({
       success: true,
@@ -173,4 +193,59 @@ const updateDoctor = async (req, reply) => {
   }
 };
 
-module.exports = { updateDoctor, deleteDoctor, doctorDetail, doctorList };
+const patchdoctor = async (req, reply) => {
+  try {
+    const { id } = req.params;
+    const { rating } = req.body;
+    const userId = req.query.userId; // Assuming user ID is available in `req.user`
+
+    const foundDoctor = await User.findById(id);
+    if (!foundDoctor) {
+      return reply.json({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    let existingRating = foundDoctor.ratedBy.find(
+      (r) => r.userId.toString() === userId
+    );
+
+    if (existingRating) {
+      // Update existing rating
+      existingRating.rating = rating;
+    } else {
+      // Add new rating entry
+      foundDoctor.ratedBy.push({ userId, rating });
+    }
+
+    // Recalculate average rating
+    const totalRatings = foundDoctor.ratedBy.length;
+    const newAverageRating =
+      foundDoctor.ratedBy.reduce((sum, r) => sum + r.rating, 0) / totalRatings;
+
+    foundDoctor.rating = newAverageRating;
+    await foundDoctor.save();
+
+    return reply.json({
+      success: true,
+      message: "Doctor rating updated",
+      data: foundDoctor,
+    });
+  } catch (error) {
+    console.error(error);
+    return reply.json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = {
+  updateDoctor,
+  deleteDoctor,
+  doctorDetail,
+  doctorList,
+  patchdoctor,
+};

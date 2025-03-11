@@ -9,12 +9,19 @@ const appointRouter = require("./Routes/appointment");
 const requestRouter = require("./Routes/donorRequest");
 const cors = require("cors");
 const { errorHandler } = require("./controller/authentication/error");
+const path = require("path");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(logger);
+app.use((req, res, next) => {
+  console.log(`Static File Request: ${req.url}`);
+  next();
+});
+// Serve static files from the uploads directory
+app.use("/uploads", express.static(path.join(__dirname, "./uploads")));
 const port = 4000;
 
 connectDb().then(() => {
